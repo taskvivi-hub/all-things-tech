@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Inbox Defender: Campus Patrol</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@500;700;800&family=Caveat:wght@700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#9ed77b; --panel:#fffdf6; --ink:#2b3a4f; --muted:#66768c; --line:#e6dcc4;
+  --story:#eef5ff; --bubble:#fff3dc; --bubble-line:#f0cf96; --chip-bg:#e6f4dc; --chip-ink:#3c7a35;
+  --accent:#3f74d6; --accent-ink:#ffffff; --accent-shadow:#2a54a3; --soft:#eef2fb; --soft-ink:#33579c;
+  --gold:#f2a43a; --zh-bg:#f3f5f9; --zh-ink:#52637a; --good:#3aa86b; --scrim:rgba(30,52,36,.45);
+  --card:#ffffff; --sel:#e8f0ff; --sel-line:#4d6fd2;
+  --safe:#1f8a50; --phish:#c8382c; --safe-bg:#e4f5ea; --phish-bg:#fdeae6; --hl:#ffe27a; --link:#2f6fd0; --link-shadow:#1f4f9c; --mailhead:#f4f7fc;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#26382a; --panel:#1f2734; --ink:#e9eef6; --muted:#a4b1c3; --line:#37435c;
+    --story:#24304a; --bubble:#3a2f1f; --bubble-line:#6e5530; --chip-bg:#26402a; --chip-ink:#b6e3a8;
+    --accent:#6b93ee; --accent-ink:#0e1626; --accent-shadow:#3d5fae; --soft:#2a3550; --soft-ink:#cad8ff;
+    --zh-bg:#2a3243; --zh-ink:#c3cddc; --scrim:rgba(6,12,9,.62); --card:#273145; --sel:#2c3c66; --sel-line:#8aa6ff;
+    --safe:#62c98f; --phish:#ff8576; --safe-bg:#1a3626; --phish-bg:#3e201c; --hl:#6a5a12; --link:#5b8fe8; --link-shadow:#2f5aa8; --mailhead:#232d40;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#26382a; --panel:#1f2734; --ink:#e9eef6; --muted:#a4b1c3; --line:#37435c;
+  --story:#24304a; --bubble:#3a2f1f; --bubble-line:#6e5530; --chip-bg:#26402a; --chip-ink:#b6e3a8;
+  --accent:#6b93ee; --accent-ink:#0e1626; --accent-shadow:#3d5fae; --soft:#2a3550; --soft-ink:#cad8ff;
+  --zh-bg:#2a3243; --zh-ink:#c3cddc; --scrim:rgba(6,12,9,.62); --card:#273145; --sel:#2c3c66; --sel-line:#8aa6ff;
+  --safe:#62c98f; --phish:#ff8576; --safe-bg:#1a3626; --phish-bg:#3e201c; --hl:#6a5a12; --link:#5b8fe8; --link-shadow:#2f5aa8; --mailhead:#232d40;
+  color-scheme:dark;
+}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:16px/1.6 Nunito,"PingFang TC","Microsoft JhengHei","Noto Sans TC",system-ui,sans-serif;overflow:hidden;-webkit-tap-highlight-color:transparent}
+h1,h2,h3{font-family:"Baloo 2",Nunito,"PingFang TC","Microsoft JhengHei",sans-serif;line-height:1.15}
+#game{position:relative;width:100%;height:100%;overflow:hidden}
+#world{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:pointer}
+#fx{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:40}
+.hidden{display:none!important}
+
+/* HUD */
+#hud{position:absolute;top:10px;left:10px;right:10px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;z-index:10;pointer-events:none}
+#hud>*{pointer-events:auto}
+.hud-left{display:flex;flex-direction:column;gap:8px;max-width:250px}
+.pill{align-self:flex-start;background:var(--panel);border:2px solid var(--line);border-radius:999px;padding:4px 14px;font:800 18px/1.5 "Baloo 2",Nunito,sans-serif;box-shadow:0 3px 0 rgba(0,0,0,.12)}
+.pill small{font-size:13px;color:var(--muted);margin-left:2px}
+.quest{background:var(--panel);border:2px solid var(--line);border-radius:18px;padding:9px 12px 10px;box-shadow:0 3px 0 rgba(0,0,0,.12)}
+.q-top{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);font-weight:800}
+.q-name{font:800 17px/1.25 "Baloo 2",Nunito,sans-serif;margin-top:2px}
+.q-zh{font-size:13px;color:var(--muted)}
+.dots{display:flex;gap:4px;margin:7px 0 8px}
+.dot{width:11px;height:11px;border-radius:50%;background:var(--line);display:block}
+.dot.done{background:var(--good)}
+.dot.now{background:var(--gold);box-shadow:0 0 0 3px rgba(242,164,58,.3)}
+.gobtn{width:100%;border:0;border-radius:11px;background:var(--soft);color:var(--soft-ink);font:800 13px Nunito,sans-serif;padding:6px 8px;cursor:pointer}
+.hud-right{display:flex;gap:6px}
+.iconbtn{width:42px;height:42px;border-radius:50%;border:2px solid var(--line);background:var(--panel);font-size:19px;cursor:pointer;box-shadow:0 3px 0 rgba(0,0,0,.12);color:var(--ink)}
+#toast{position:absolute;left:50%;bottom:16px;transform:translate(-50%,140%);z-index:12;display:flex;gap:10px;align-items:center;background:var(--panel);border:2px solid var(--bubble-line);border-radius:20px;padding:8px 16px 8px 8px;box-shadow:0 6px 18px rgba(0,0,0,.18);max-width:min(92vw,460px);transition:transform .35s cubic-bezier(.2,1.3,.4,1);font-size:15px;line-height:1.4}
+#toast.show{transform:translate(-50%,0)}
+#toast .tz{font-size:13px;color:var(--muted)}
+#hint{position:absolute;left:50%;top:50%;transform:translate(-50%,60px);z-index:11;background:rgba(43,58,79,.86);color:#fff;border-radius:16px;padding:10px 16px;font-size:14px;text-align:center;pointer-events:none;max-width:88vw}
+
+/* Overlays */
+.overlay{position:absolute;inset:0;z-index:30;background:var(--scrim);display:flex;justify-content:center;align-items:flex-start;overflow-y:auto;padding:16px 12px 28px;-webkit-overflow-scrolling:touch}
+.overlay.light{background:rgba(30,52,36,.18)}
+.sheet{width:100%;max-width:760px;margin:auto 0;background:var(--panel);border:3px solid var(--line);border-radius:28px;padding:22px;box-shadow:0 10px 0 rgba(0,0,0,.10),0 24px 50px rgba(0,0,0,.25);animation:pop .4s cubic-bezier(.2,1.35,.4,1)}
+@keyframes pop{from{transform:translateY(24px) scale(.96);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.sheet{animation:none}#toast{transition:none}}
+.title-sheet{max-width:560px;text-align:center}
+.title-sheet h1{font-size:clamp(38px,8vw,56px);margin:4px 0 0;color:var(--accent)}
+.subtitle{font:700 21px/1.3 "Baloo 2",Nunito,sans-serif}
+.lesson{font-size:13px;color:var(--muted);font-weight:700}
+.cast{display:flex;justify-content:center;align-items:flex-end;gap:4px;margin:14px 0 6px}
+h2{font-size:25px;margin:6px 0 12px}
+h3{font-size:19px;margin:0 0 8px}
+.muted{color:var(--muted);font-size:14px}
+.small{font-size:13px}
+.chip{display:inline-block;background:var(--chip-bg);color:var(--chip-ink);border-radius:99px;padding:3px 11px;font-size:13px;font-weight:800}
+.story{background:var(--story);padding:14px;border-radius:16px;margin:12px 0}
+.bubble{background:var(--bubble);border:2px solid var(--bubble-line);border-radius:20px;padding:14px;margin:12px 0}
+.who{display:flex;align-items:center;gap:10px;font-weight:800}
+.pt{display:inline-block;line-height:0;flex-shrink:0}
+.line{display:flex;align-items:flex-start;gap:10px}
+.line .words{flex:1;min-width:0}
+.trans{display:inline-flex;align-items:center;justify-content:center;width:30px;height:28px;border:2px solid var(--line);border-radius:9px;background:var(--card);color:var(--soft-ink);font-weight:800;cursor:pointer;flex-shrink:0;font-size:13px}
+.zh{display:none;color:var(--zh-ink);font-size:14px;background:var(--zh-bg);padding:8px 10px;margin-top:7px;border-radius:9px}
+.zh.visible{display:block}
+.btn{background:var(--accent);color:var(--accent-ink);border:0;border-radius:14px;padding:12px 20px;font:800 16px Nunito,sans-serif;cursor:pointer;box-shadow:0 4px 0 var(--accent-shadow);transition:transform .1s}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--accent-shadow)}
+.btn.secondary{background:var(--soft);color:var(--soft-ink);box-shadow:0 4px 0 var(--line)}
+.btn.gold{background:#f2b440;color:#3a2a0e;box-shadow:0 4px 0 #c98a1d}
+.btn.big{font-size:19px;padding:14px 34px}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+button:focus-visible{outline:3px solid #ffbf5d;outline-offset:2px}
+.reading-tip{display:flex;gap:12px;align-items:flex-start;background:var(--bubble);border:2px solid var(--bubble-line);border-radius:16px;padding:13px;margin:14px 0}
+.reading-tip>div:last-child{flex:1;min-width:0}
+.tip-icon{font-size:26px}
+.tip-rule{font-size:13px;color:var(--muted);margin-top:8px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
+.pcard{cursor:pointer;border:3px solid var(--line);border-radius:22px;padding:10px 8px 14px;background:var(--card);text-align:center;font:inherit;color:var(--ink);transition:transform .15s,border-color .15s}
+.pcard:hover{border-color:var(--sel-line);transform:translateY(-3px)}
+.pcard.sel{border-color:var(--sel-line);background:var(--sel)}
+.pcard strong{display:block;font:800 18px/1.2 "Baloo 2",Nunito,sans-serif;margin-top:4px}
+.pcard .muted{display:block}
+.looks{display:flex;gap:10px;margin:8px 0 4px}
+.look{border:3px solid var(--line);border-radius:18px;background:var(--card);padding:4px 6px 6px;cursor:pointer;color:var(--ink);font:800 13px Nunito,sans-serif}
+.look.sel{border-color:var(--sel-line);background:var(--sel)}
+.sheet-head{display:flex;align-items:center;gap:12px;margin:-22px -22px 14px;padding:14px 18px;border-radius:25px 25px 0 0;color:#fff}
+.sheet-head h2{margin:0;color:#fff;font-size:24px}
+.sheet-head .eyebrow{font-size:12px;font-weight:800;opacity:.9}
+.zhname{font-size:15px;font-weight:700;opacity:.92;margin-left:4px;font-family:Nunito,"PingFang TC","Microsoft JhengHei",sans-serif}
+.bigicon{font-size:32px;width:56px;height:56px;border-radius:17px;background:rgba(255,255,255,.25);display:grid;place-items:center;flex-shrink:0}
+.close{margin-left:auto;width:38px;height:38px;border-radius:50%;border:0;background:rgba(255,255,255,.25);color:#fff;font-size:18px;cursor:pointer;flex-shrink:0}
+.stats{display:flex;justify-content:space-between;gap:10px;font-size:14px;font-weight:800;margin-bottom:8px}
+.progress{height:12px;border-radius:10px;background:var(--line);overflow:hidden}
+.progress>div{height:100%;background:linear-gradient(90deg,#69a8e9,#42b38a);transition:width .3s}
+.decision{border:2px solid var(--line);border-radius:18px;padding:15px;margin:14px 0;background:var(--card)}
+.choice{display:block;width:100%;text-align:left;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:11px 14px;margin:9px 0;cursor:pointer;font:inherit;color:var(--ink)}
+.choice:hover:not(:disabled){border-color:var(--sel-line)}
+.choice.selected{border-color:var(--sel-line);background:var(--sel)}
+.choice:disabled{cursor:default}
+.choice .zh{font-size:13px}
+.result{border-left:6px solid #4d80c5;background:var(--story);padding:13px 15px;border-radius:12px;margin-top:14px}
+.score{font:800 40px/1.2 "Baloo 2",Nunito,sans-serif;color:var(--accent);margin:8px 0}
+.barrow{display:flex;justify-content:space-between;font-size:15px;padding:8px 0;border-bottom:1px solid var(--line)}
+.survey{border:2px dashed var(--line);border-radius:16px;padding:13px;margin:12px 0}
+.bonus-success{background:linear-gradient(120deg,#fff3c4,#e5fbef);border:2px solid #f0ca62;border-radius:14px;padding:13px;margin:12px 0;font-weight:800;color:#2f5a3e}
+.bonus-pending{background:var(--zh-bg);border-radius:12px;padding:12px;margin:12px 0;color:var(--zh-ink)}
+.review{color:#d0563f;font-size:13px;font-weight:800;margin-left:6px}
+.namebox{background:var(--bubble);border:2px solid var(--bubble-line);border-radius:16px;padding:14px;margin:14px 0;text-align:left}
+.namebox input{display:block;width:100%;margin-top:8px;font:700 20px Nunito,"PingFang TC","Microsoft JhengHei",sans-serif;padding:10px 12px;border-radius:12px;border:2px solid var(--line);background:var(--card);color:var(--ink)}
+.namebox input:focus{outline:3px solid #ffbf5d;outline-offset:1px}
+.ceremony{max-width:820px;text-align:center}
+.ribbon{display:inline-block;background:#df6890;color:#fff;font:800 19px/1.5 "Baloo 2",Nunito,sans-serif;padding:3px 24px;border-radius:999px;transform:rotate(-2deg);box-shadow:0 3px 0 #b44a6e}
+.shot{display:inline-block;background:var(--chip-bg);color:var(--chip-ink);font-weight:800;border-radius:12px;padding:8px 14px;margin-top:4px}
+
+/* Email */
+.ask{margin:6px 0 0;font-size:17px;font-weight:700}
+.mail{position:relative;background:var(--card);border:2px solid var(--line);border-radius:18px;overflow:hidden;margin:12px 0 10px}
+.mhead{padding:11px 14px;border-bottom:2px dashed var(--line);display:grid;gap:3px;background:var(--mailhead)}
+.mrow{display:grid;grid-template-columns:4.3rem 1fr;gap:8px;align-items:baseline}
+.mk{color:var(--muted);font-size:13px;font-weight:800}
+.mv{word-break:break-word;min-width:0}
+.addr{color:var(--muted);font-size:14px}
+.subj{font-weight:800;font-size:17px}
+.mbody{padding:14px 16px 16px;display:grid;gap:10px;font-size:18px;line-height:1.6}
+.mbody p{margin:0}
+.mlink{background:var(--link);color:#fff;border:0;border-radius:12px;padding:9px 18px;font:800 15px Nunito,sans-serif;cursor:pointer;box-shadow:0 3px 0 var(--link-shadow)}
+.seg{border-radius:6px;transition:background .25s,box-shadow .25s}
+.seg.clue{background:var(--hl);box-shadow:0 0 0 3px var(--hl)}
+.mlink.clue{box-shadow:0 0 0 4px var(--hl)}
+.gl{border-bottom:2px dotted var(--link);cursor:help}
+.urlbar{font-size:14px;color:var(--muted);background:var(--card);border:2px dashed var(--line);border-radius:12px;padding:9px 12px;word-break:break-all;line-height:1.5}
+.urlbar .url{color:var(--ink);font-size:15px}
+.proto-http{color:var(--phish);font-weight:800}
+.proto-https{color:var(--safe);font-weight:800}
+.wordtip{margin-top:8px;background:var(--bubble);border:2px solid var(--bubble-line);border-radius:12px;padding:7px 12px;font-weight:800;font-size:15px}
+.stamp{position:absolute;top:46%;left:50%;pointer-events:none;font:800 clamp(30px,8vw,48px)/1 "Baloo 2",Nunito,sans-serif;padding:6px 18px 2px;border:5px solid currentColor;border-radius:14px;transform:translate(-50%,-50%) rotate(-10deg) scale(2.2);opacity:0;background:var(--card)}
+.stamp.sf{color:var(--safe)} .stamp.ph{color:var(--phish)}
+.stamp.show{animation:stamp .32s cubic-bezier(.2,.9,.3,1.3) forwards}
+@keyframes stamp{to{transform:translate(-50%,-50%) rotate(-10deg) scale(1);opacity:.92}}
+.hintrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px}
+.hintrow .btn{width:auto;padding:8px 14px;font-size:14px}
+.hinttxt{flex-basis:100%;background:var(--story);border-radius:12px;padding:10px 12px;font-weight:700}
+.judge{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.jbtn{border:0;border-radius:18px;padding:13px 8px 11px;font:800 21px/1.2 "Baloo 2",Nunito,sans-serif;color:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;transition:transform .1s}
+.jbtn small{font:700 13px Nunito,sans-serif;opacity:.92}
+.jbtn.safe{background:#2a9a5c;box-shadow:0 5px 0 #1b6b3e}
+.jbtn.phish{background:#d4443a;box-shadow:0 5px 0 #962b22}
+.jbtn:active:not(:disabled){transform:translateY(4px);box-shadow:0 1px 0 rgba(0,0,0,.3)}
+.jbtn:disabled{opacity:.35;cursor:default}
+.jbtn.picked{opacity:1;outline:4px solid #ffbf5d;outline-offset:2px}
+.fb{margin-top:14px;border-radius:18px;padding:14px 16px;border:2px solid var(--line)}
+.fb.ok{border-color:var(--safe);background:var(--safe-bg)}
+.fb.no{border-color:var(--phish);background:var(--phish-bg)}
+.fb .kind{font:800 19px/1.3 "Baloo 2",Nunito,sans-serif;margin:10px 0 4px}
+.fb .pts{font-weight:800;color:var(--safe);margin:0 0 6px}
+.fb .cons{font-weight:700;margin:0 0 6px}
+.cluehead{font-size:14px;color:var(--muted);font-weight:800;margin:8px 0 0}
+.clues{list-style:none;padding:0;margin:8px 0 0;display:grid;gap:8px}
+.clues li{background:var(--card);border-radius:12px;padding:9px 12px;border:2px solid var(--line)}
+.clues .where{font-size:12px;color:var(--muted);font-weight:800;display:block}
+.clues .term{display:inline-block;margin-top:5px;font-size:13px;font-weight:800;color:var(--soft-ink);background:var(--soft);border-radius:99px;padding:1px 10px}
+.newbadge{margin-top:10px;background:linear-gradient(120deg,#fff3c4,#e5fbef);border:2px solid #f0ca62;border-radius:14px;padding:9px 13px;font-weight:800;color:#2f5a3e}
+/* Boss */
+.villain .who span{color:var(--phish)}
+.bubble.villain{border-color:var(--phish);background:var(--phish-bg)}
+.bossbar{display:flex;justify-content:space-between;align-items:center;gap:10px;font-weight:800;margin-top:12px}
+.bosscount{background:var(--panel);border:2px solid var(--line);border-radius:99px;padding:2px 14px}
+.boss .seg{cursor:pointer;outline:2px dashed transparent;outline-offset:2px}
+.boss .seg:hover{outline-color:var(--muted)}
+.boss .seg.found{background:var(--safe-bg);outline:2px solid var(--safe)}
+.boss .seg.found::after{content:" ✓";color:var(--safe);font-weight:800}
+.boss .mlink.found::after{color:#fff}
+.boss .seg.missed{background:var(--hl)}
+.shake{animation:shake .35s}
+@keyframes shake{20%,60%{transform:translateX(-5px)}40%,80%{transform:translateX(5px)}}
+.bosslog{list-style:none;padding:0;margin:10px 0 0;display:grid;gap:8px}
+.bosslog li{padding:9px 12px;border-radius:12px;border:2px solid var(--line);background:var(--card);font-size:15px}
+.bosslog li.good{border-color:var(--safe)}
+.bosslog li.bad{border-color:var(--phish)}
+.words{background:var(--bubble);border:2px solid var(--bubble-line);border-radius:12px;padding:8px 12px;font-size:15px;font-weight:700;margin-top:10px}
+/* End */
+.review-list{list-style:none;padding:0;margin:8px 0 0}
+.review-list li{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:15px}
+.badges{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-top:8px}
+.badge{border:2px solid var(--line);border-radius:14px;padding:9px 12px;display:grid;grid-template-columns:2rem 1fr;gap:8px;align-items:center;font-size:13px;background:var(--card);text-align:left}
+.badge .bi{font-size:24px}
+.badge b{display:block;font-size:15px}
+.badge.off{opacity:.4;filter:grayscale(1)}
+.vtable{border-collapse:collapse;width:100%;font-size:15px}
+.vtable td{padding:6px 10px;border-bottom:1px solid var(--line)}
+.vtable td:first-child{font-weight:800}
+.task{background:var(--bubble);border:2px solid var(--bubble-line);border-radius:18px;padding:14px;margin-top:18px;text-align:left}
+.task textarea{width:100%;min-height:110px;margin-top:10px;font:500 16px Nunito,sans-serif;padding:10px;border-radius:12px;border:2px solid var(--line);background:var(--card);color:var(--ink)}
+.starters{list-style:none;padding:0;margin:8px 0 0;display:grid;gap:8px}
+.starters li{border:2px solid var(--line);background:var(--card);color:var(--ink);border-radius:14px;padding:8px 14px;font:700 16px/1.45 Nunito,sans-serif}
+.cert{margin:14px auto 0;max-width:720px}
+.cert img{display:block;width:100%;height:auto;border-radius:12px;box-shadow:0 8px 0 rgba(0,0,0,.12),0 18px 30px rgba(0,0,0,.18)}
+.endsec{text-align:left;margin-top:20px}
+.copied{color:var(--safe);font-weight:800;margin-left:8px}
+@media(max-width:560px){.mbody{font-size:17px}.mrow{grid-template-columns:3.7rem 1fr}.jbtn{font-size:19px}.judge .jbtn{width:auto}}
+@media(max-width:560px){
+  .grid3{grid-template-columns:1fr}
+  .pcard{display:flex;align-items:center;gap:12px;text-align:left;padding:8px 12px}
+  .sheet{padding:17px;border-radius:24px}
+  .sheet-head{margin:-17px -17px 12px;border-radius:21px 21px 0 0}
+  .sheet-head h2{font-size:20px}
+  .btn{width:100%}
+  .actions{flex-direction:column}
+  .hud-left{max-width:200px}
+  .q-name{font-size:15px}
+  .quest{padding:7px 10px 8px}
+}
+</style>
+</head>
+<body>
+<div id="game">
+  <canvas id="world" aria-label="Campus map. Tap or click to walk."></canvas>
+  <div id="hud" class="hidden">
+    <div class="hud-left">
+      <div class="pill">⭐ <span id="hScore">0</span><small>/ 100</small></div>
+      <div class="quest">
+        <div class="q-top"><span>Next stop</span><span id="qCount">1 / 10</span></div>
+        <div class="q-name"><span id="qIcon"></span> <span id="qName"></span></div>
+        <div class="q-zh" id="qZh"></div>
+        <div class="dots" id="dots"></div>
+        <button class="gobtn" id="goBtn" onclick="goNext()">📍 Walk there</button>
+      </div>
+    </div>
+    <div class="hud-right">
+      <button class="iconbtn" id="sndBtn" onclick="toggleSound()" aria-label="Turn sound on or off">🔊</button>
+      <button class="iconbtn" onclick="showHelp()" aria-label="How to play">❓</button>
+    </div>
+  </div>
+  <div id="hint" class="hidden">👆 Tap the ground or a building to walk<br>⌨️ Arrow keys or WASD work too</div>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <div id="ov" class="overlay light"></div>
+  <canvas id="fx"></canvas>
+</div>
+<script>
+/* ============ LESSON CONTENT ============ */
+const PARTNERS={
+ owl:{name:'Ollie the Owl',short:'Ollie',role:'Link Checker',intro:'I always check where a link really goes. Let’s keep our campus safe!'},
+ cat:{name:'Mochi the Cat',short:'Mochi',role:'Domain Detective',intro:'I read every email address very carefully. Fake senders can’t trick me!'},
+ hamster:{name:'Bao the Hamster',short:'Bao',role:'Password Guard',intro:'I never share my password. Let’s stop the scammers together!'}
+};
+const PEOPLE={
+ kai:{name:'Kai',role:'IT Help Desk leader'},
+ alex:{name:'Alex',role:'Exchange student'},
+ jiahui:{name:'Jia-Hui',role:'Freshman'},
+ chang:{name:'Mr. Chang',role:'Dorm manager'},
+ phisher:{name:'The Phisher',role:'Mystery hacker'}
+};
+const SEG_NAME={from:'Sender',subject:'Subject',link:'Link'};
+const segName=s=>SEG_NAME[s]||'Message';
+
+/* 9 emails (one per building) + the boss email at the school gate */
+const EMAILS=[
+ {phish:false,ask:['alex','Is this email from the library real? I don’t want to pay a late fee!'],
+  fromName:'Taipei Tech Library',fromAddr:'library@ntut.edu.tw',subject:'Your book is due on October 24',
+  body:[{id:'p0',t:'Hi,'},{id:'p1',t:'Your book is due on October 24.'},{id:'p2',t:'You can renew it online. Late books cost NT$5 a day.'},{id:'link'},{id:'p3',t:'Taipei Tech Library'}],
+  link:{text:'My Library Account',url:'https://lib.ntut.edu.tw'},
+  hint:'Look at the sender’s address. Does it end with ntut.edu.tw?',
+  clues:[{seg:'from',en:'The sender uses the school’s real domain: ntut.edu.tw.',term:'domain 網域'},
+   {seg:'p2',en:'The tone is calm. There is no threat and no password request.',term:'renew 續借'},
+   {seg:'link',en:'The link uses https and goes to the school website.',term:'HTTPS 加密連線'}],
+  vocab:[['due','到期'],['renew','續借']]},
+
+ {phish:true,ask:['jiahui','I just got this email. Should I click the button?'],
+  fromName:'Taipei Tech IT Service',fromAddr:'it-service@ntut-support.net',subject:'URGENT: Your account will be closed',
+  body:[{id:'p0',t:'Dear Student,'},{id:'p1',t:'Your account will be closed in 24 hours.'},{id:'p2',t:'Click the link and type your password to keep it.'},{id:'link'}],
+  link:{text:'Keep My Account',url:'http://ntut-login.verify-account.net/login'},
+  hint:'Does the school ever ask for your password by email?',
+  clues:[{seg:'from',en:'The domain is ntut-support.net. The school’s real domain is ntut.edu.tw.',term:'domain 網域'},
+   {seg:'p1',en:'“Closed in 24 hours” makes you panic and click fast.',term:'urgent 緊急的'},
+   {seg:'p2',en:'The school never asks for your password by email.',term:'password 密碼'},
+   {seg:'link',en:'The link starts with http, and it is not the school’s website.',term:'HTTP 沒有加密'}],
+  vocab:[['urgent','緊急的'],['account','帳號'],['password','密碼']]},
+
+ {phish:false,ask:['alex','I need to choose my classes. Can I trust this email?'],
+  fromName:'Office of Academic Affairs',fromAddr:'oaa@ntut.edu.tw',subject:'Course registration opens on November 2',
+  body:[{id:'p0',t:'Dear Students,'},{id:'p1',t:'Course registration opens on November 2.'},{id:'p2',t:'Please log in on the student portal. We never ask for your password by email.'},{id:'link'}],
+  link:{text:'Student Portal',url:'https://nportal.ntut.edu.tw'},
+  hint:'Tap the blue button. Where does the link really go?',
+  clues:[{seg:'from',en:'The sender uses the school’s real domain.',term:'official 官方的'},
+   {seg:'p2',en:'It says they never ask for passwords by email. You log in on the portal yourself.',term:'portal 入口網站'},
+   {seg:'link',en:'https and the school’s real domain.',term:'HTTPS 加密連線'}],
+  vocab:[['registration','選課登記'],['portal','入口網站']]},
+
+ {phish:true,ask:['jiahui','Wow, I won a free iPhone! Can I get it?'],
+  fromName:'Taipei Tech Campus Rewards',fromAddr:'ntut.campus.rewards@gmail.com',subject:'You won a free iPhone 17!',
+  body:[{id:'p0',t:'Dear Lucky Winner,'},{id:'p1',t:'You won a free iPhone 17!'},{id:'p2',t:'Only 30 minutes left. Just pay NT$99 for shipping.'},{id:'link'}],
+  link:{text:'Get My Prize',url:'http://bit.ly/ntut-free-phone'},
+  hint:'Would a school office send email from a Gmail address?',
+  clues:[{seg:'from',en:'School offices don’t use free Gmail addresses.',term:'sender 寄件者'},
+   {seg:'p1',en:'A free iPhone from nowhere is too good to be true.',term:'too good to be true 好得不像真的'},
+   {seg:'p2',en:'Only 30 minutes, and you must pay first. This is a common scam trick.',term:'shipping 運費'},
+   {seg:'link',en:'A short link hides the real website. It also uses http.',term:'short link 短網址'}],
+  vocab:[['winner','得獎者'],['shipping','運送、運費']]},
+
+ {phish:true,badge:'https',ask:['chang','Many students in the dorm got this Wi-Fi email. Is it real?'],
+  fromName:'Taipei Tech Dorm Network',fromAddr:'wifi@ntut.edu.tw.wifi-renew.co',subject:'Your Wi-Fi password expired',
+  body:[{id:'p0',t:'Hello,'},{id:'p1',t:'Your Wi-Fi will stop tonight.'},{id:'p2',t:'Our page has HTTPS, so it is safe.'},{id:'p3',t:'Type your password now.'},{id:'link'}],
+  link:{text:'Renew Password',url:'https://ntut.edu.tw.wifi-renew.co/renew'},
+  hint:'Read the email address from right to left. The last part is the real owner.',
+  clues:[{seg:'from',en:'It starts with ntut.edu.tw, but the real domain is the last part: wifi-renew.co.',term:'read right to left 從右往左讀'},
+   {seg:'p1',en:'“Your Wi-Fi will stop tonight” puts time pressure on you.',term:'pressure 壓力'},
+   {seg:'p2',en:'HTTPS does not mean safe. Scammers can use HTTPS too.',term:'HTTPS ≠ safe'},
+   {seg:'p3',en:'Never type your password from an email link.',term:'password 密碼'}],
+  vocab:[['expired','過期'],['password','密碼']]},
+
+ {phish:false,ask:['jiahui','My professor sent this. Can I open the course page?'],
+  fromName:'Prof. Chen Wei-Lun',fromAddr:'wlchen@ntut.edu.tw',subject:'Lab report guide for Week 8',
+  body:[{id:'p0',t:'Dear class,'},{id:'p1',t:'The Week 8 lab report guide is on the course page.'},{id:'p2',t:'Please read it before Thursday. Questions? Come to my office on Wednesday.'},{id:'link'},{id:'p3',t:'Prof. Chen'}],
+  link:{text:'Course Page',url:'https://nportal.ntut.edu.tw'},
+  hint:'Is anyone asking for money, a password, or fast action?',
+  clues:[{seg:'from',en:'This is the professor’s school email: ntut.edu.tw.',term:'official 官方的'},
+   {seg:'p2',en:'Clear and normal. No hurry, no money, and no password.',term:'lab report 實驗報告'},
+   {seg:'link',en:'https and the school portal.',term:'HTTPS 加密連線'}],
+  vocab:[['lab report','實驗報告'],['guide','指南、說明']]},
+
+ {phish:true,ask:['alex','A scholarship! Should I send them my bank account number?'],
+  fromName:'Taipei Tech Scholarship Office',fromAddr:'scholarship@ntut-edu.tw',subject:'Get a NT$20,000 scholarship!',
+  body:[{id:'p0',t:'Dear Student,'},{id:'p1',t:'You can get a NT$20,000 scholarship!'},{id:'p2',t:'Send us your bank account number and ID number.'},{id:'p3',t:'The deadline is tomorrow.'},{id:'link'}],
+  link:{text:'Scholarship Details',url:'https://ntut-edu.tw/scholarship'},
+  hint:'Look very carefully: ntut-edu.tw or ntut.edu.tw?',
+  clues:[{seg:'from',en:'ntut-edu.tw has a dash (-). The real domain is ntut.edu.tw with a dot.',term:'lookalike domain 仿冒網域'},
+   {seg:'p2',en:'It asks for your bank account and ID number. Never send these by email.',term:'personal information 個人資料'},
+   {seg:'p3',en:'“The deadline is tomorrow” makes you hurry.',term:'deadline 截止日期'}],
+  vocab:[['scholarship','獎學金'],['bank account','銀行帳戶'],['deadline','截止日期']]},
+
+ {phish:true,ask:['jiahui','Someone shared the midterm answers with me… Should I download them?'],
+  fromName:'Cl0udDrive',fromAddr:'no-reply@cloud-drive-share.com',subject:'Prof. Lin shared “Midterm Answers” with you',
+  body:[{id:'p1',t:'Prof. Lin shared a file with you.'},{id:'p2',t:'Download it in 1 hour, or it will be gone!'},{id:'link'}],
+  link:{text:'Download File',url:'http://cloud-drive-share.com/d/mid-ans.exe'},
+  hint:'Look at the sender’s name. Is that the letter o or the number 0?',
+  clues:[{seg:'from',en:'Cl0udDrive uses the number 0, not the letter o.',term:'fake sender 假冒寄件者'},
+   {seg:'subject',en:'“Midterm answers” is bait. It plays on your curiosity.',term:'bait 誘餌'},
+   {seg:'p2',en:'“Download it in 1 hour” pushes you to act fast.',term:'hurry 催促'},
+   {seg:'link',en:'It uses http, and the file is a .exe program. It may be a virus.',term:'malware 惡意程式'}],
+  vocab:[['midterm','期中考'],['download','下載']]},
+
+ {phish:false,ask:['alex','This email scared me. Is someone hacking my account?'],
+  fromName:'Computer and Network Center',fromAddr:'cnc@ntut.edu.tw',subject:'New sign-in to your account',
+  body:[{id:'p0',t:'Hi,'},{id:'p1',t:'Someone signed in to your account. Device: laptop. Place: Taipei.'},{id:'p2',t:'Was this you? If not, go to the student portal and change your password.'},{id:'link'}],
+  link:{text:'Student Portal',url:'https://nportal.ntut.edu.tw'},
+  hint:'Not every scary email is fake. Check the sender and the link.',
+  clues:[{seg:'from',en:'The school’s real domain. Not every warning is fake.',term:'official 官方的'},
+   {seg:'p1',en:'It gives clear details you can check: the device and the place.',term:'device 裝置'},
+   {seg:'p2',en:'No hurry and no password request. You go to the portal yourself.',term:'sign in 登入'}],
+  vocab:[['signed in','登入'],['device','裝置']]}
+];
+const BOSS={
+ fromName:'Taipei Tech Payment Center',fromAddr:'billing@ntut.edu.tw-payment.com',subject:'FINAL NOTICE: Pay your tuition',
+ body:[{id:'p0',t:'Dear Student,'},{id:'p1',t:'Your tuition payment failed.'},{id:'p2',t:'Pay in 2 hours, or you will lose all your classes.'},{id:'p3',t:'Please type your credit card number and CVV.'},{id:'link'},{id:'p4',t:'Thank you.'},{id:'p5',t:'Office of Finance'}],
+ link:{text:'Pay Now',url:'http://ntut-pay.secure-billing.top/pay'},
+ clues:{
+  from:{en:'The real domain is the last part: tw-payment.com. It is not ntut.edu.tw.',term:'domain 網域'},
+  subject:{en:'“FINAL NOTICE” in capital letters is there to scare you.',term:'final notice 最後通知'},
+  p2:{en:'“Pay in 2 hours or lose your classes” is a threat to make you act fast.',term:'threat 威脅'},
+  p3:{en:'The school never asks for your credit card number and CVV by email.',term:'credit card 信用卡'},
+  link:{en:'It starts with http, and secure-billing.top is a strange domain.',term:'HTTP 沒有加密'}},
+ decoys:{p0:'This is a normal greeting.',p1:'This sentence only gives information. Look at what the email asks you to do.',p4:'This is a normal, polite ending.',p5:'Anyone can type this name. It is not a clue by itself.'},
+ need:4
+};
+const BOSS_WORDS=[['tuition','學費'],['CVV','信用卡背面的安全碼']];
+const BADGES={
+ https:{icon:'🔐',name:'HTTPS Detective',desc:'Saw through a fake HTTPS page'},
+ inspector:{icon:'🔍',name:'Link Inspector',desc:'Checked the link in 6 emails'},
+ combo:{icon:'⚡',name:'Combo Master',desc:'5 correct answers in a row'},
+ perfect:{icon:'🎯',name:'Perfect Patrol',desc:'All 9 emails correct'},
+ boss:{icon:'🛡️',name:'Boss Breaker',desc:'Stopped the tuition scam'}
+};
+const PASS=90, EMAIL_PTS=8, CLUE_PTS=6, BOSS_WIN_PTS=4, WRONG_TAP=2; // 9×8 + 4×6 + 4 = 100
+
+/* ============ CAMPUS LAYOUT ============ */
+const T=48,COLS=30,ROWS=22,W=COLS*T,H=ROWS*T,SPEED=200;
+const CENTERS=[
+ {name:'Library',zh:'圖書館',icon:'📚',x:3,y:2,roof:'#69984a',wall:'#f5fbef'},
+ {name:'Student Center',zh:'學生活動中心',icon:'🎸',x:9,y:2,roof:'#8c6bd6',wall:'#fbf5ff'},
+ {name:'Academic Affairs',zh:'教務處',icon:'📝',x:16,y:2,roof:'#33a39b',wall:'#eefbf8'},
+ {name:'Cafeteria',zh:'學生餐廳',icon:'🍱',x:22,y:2,roof:'#e3a12f',wall:'#fffaf0'},
+ {name:'Dormitory',zh:'學生宿舍',icon:'🛏️',x:24,y:9,roof:'#4f86d9',wall:'#f1f6ff'},
+ {name:'Professor’s Office',zh:'教授研究室',icon:'🔬',x:21,y:15,roof:'#df6890',wall:'#fff2f6'},
+ {name:'Student Affairs',zh:'學務處',icon:'🎓',x:15,y:15,roof:'#e9765b',wall:'#fff4e4'},
+ {name:'Classroom Building',zh:'教學大樓',icon:'🏫',x:9,y:15,roof:'#7f8796',wall:'#f3f4f8'},
+ {name:'Network Center',zh:'計算機與網路中心',icon:'💻',x:3,y:15,roof:'#2fafcc',wall:'#eefaff'},
+ {name:'School Gate',zh:'校門口',icon:'🚪',x:3,y:8,w:4,h:3,roof:'#b5404f',wall:'#f6efe6',gate:true}
+];
+const HQ={x:13,y:8,w:4,h:4,roof:'#2e4a7d'};
+const TREES=[[21,10],[24,13],[7,14],[12,14],[18,14],[26,15],[26,7],[20,3],[13,3],[7,3],[7,16],[13,16],[19,16],[25,19],[4,20],[11,20],[19,20],[22,7],[11,7]];
+const POND={x:18,y:8,w:3,h:2}, FOUNT={x:9,y:9}, KAI_T=[17,11], PH_T=[7,10], START=[14,13];
+const LOOKS=[
+ {name:'Sunny',hair:'#4a2f22',shirt:'#f6a640',pants:'#4b5f93',bag:'#e2574c',style:0},
+ {name:'Breezy',hair:'#a2592f',shirt:'#5aaee8',pants:'#3f4a6b',bag:'#f2c94c',style:1},
+ {name:'Minty',hair:'#2c2540',shirt:'#76c88a',pants:'#5a4a7a',bag:'#e98bb0',style:2}
+];
+const NPC={
+ kai:{hair:'#25252d',shirt:'#2f5da8',pants:'#2a3550',noBag:true,style:0,headset:true},
+ alex:{hair:'#b9772f',shirt:'#3c8c68',pants:'#3f4a6b',bag:'#f2c94c',style:0},
+ jiahui:{hair:'#1d1d23',shirt:'#c0507a',pants:'#4b5f93',bag:'#76c88a',style:1},
+ chang:{hair:'#9a9a9a',shirt:'#7b5d30',pants:'#4a4038',noBag:true,glasses:true,style:0}
+};
+
+const idx=(x,y)=>y*COLS+x;
+const walk=new Uint8Array(COLS*ROWS).fill(1);
+function block(x,y,w=1,h=1){for(let j=y;j<y+h;j++)for(let i=x;i<x+w;i++)if(i>=0&&j>=0&&i<COLS&&j<ROWS)walk[idx(i,j)]=0}
+for(let i=0;i<COLS;i++){block(i,0);block(i,ROWS-1)}
+for(let j=0;j<ROWS;j++){block(0,j);block(COLS-1,j)}
+const trigMap=new Map();
+CENTERS.forEach((b,i)=>{b.w=b.w||3;b.h=b.h||3;block(b.x,b.y,b.w,b.h);
+ b.triggers=b.w===4?[[b.x+1,b.y+b.h],[b.x+2,b.y+b.h]]:[[b.x+1,b.y+b.h]];
+ b.doorX=(b.x+b.w/2)*T; b.triggers.forEach(([x,y])=>trigMap.set(idx(x,y),i));});
+block(HQ.x,HQ.y,HQ.w,HQ.h); HQ.doorX=(HQ.x+HQ.w/2)*T;
+TREES.forEach(([x,y])=>block(x,y));
+block(POND.x,POND.y,POND.w,POND.h); block(FOUNT.x,FOUNT.y,2,2); block(KAI_T[0],KAI_T[1]); block(PH_T[0],PH_T[1]);
+const pathSet=new Set();
+function pth(x1,y1,x2,y2){for(let y=y1;y<=y2;y++)for(let x=x1;x<=x2;x++)pathSet.add(idx(x,y))}
+pth(2,5,27,5);pth(2,18,27,18);pth(2,5,2,18);pth(27,5,27,18);pth(2,12,27,12);pth(14,12,15,18);pth(4,11,5,11);
+/* ============ STATE ============ */
+const $=id=>document.getElementById(id);
+const S={phase:'title',partner:null,look:0,current:0,score:0,answers:[],modal:false,openB:-1,answered:false,
+ combo:0,maxCombo:0,inspected:new Set(),badges:new Set(),words:new Map(),bossFound:new Set(),bossStart:0,bossWon:false,bossTapped:false};
+const P={x:0,y:0,dir:'down',ph:0,moving:false,path:[]};
+const F={x:0,y:0,dir:'down',ph:0,moving:false};
+let trail=[],lastTrig=-1,pendingInfo=-1,time=0,camX=0,camY=0,ripple=null,hintShown=false;
+let cv,ctx,fxc,fx,cw=0,ch=0,dpr=1,scale=1,ground=null,gF=0;
+let soundOn=true,ac=null,parts=[];
+let best=0; try{best=+localStorage.getItem('inboxPatrolBest')||0}catch(e){}
+let studentName=''; try{studentName=localStorage.getItem('inboxPatrolName')||''}catch(e){}
+const butterflies=[...Array(5)].map((_,i)=>({x:200+i*260,y:180+(i%3)*300,p:i*1.7,c:['#ffd24a','#ff9ec4','#9fd3ff','#fff','#ffb05a'][i]}));
+function resetRun(){Object.assign(S,{current:0,score:0,answers:[],openB:-1,answered:false,combo:0,maxCombo:0,inspected:new Set(),badges:new Set(),words:new Map(),bossFound:new Set(),bossStart:0,bossWon:false,bossTapped:false});parts=[]}
+
+/* ============ UI ============ */
+function esc(s){return String(s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))}
+const reEsc=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+function clearKeys(){for(const k in keys)keys[k]=false}
+function showOv(html,light=false){const o=$('ov');o.className='overlay'+(light?' light':'');o.innerHTML=html;hydrate(o);o.scrollTop=0;const f=o.querySelector('button');if(f&&S.phase==='play')setTimeout(()=>f.focus({preventScroll:true}),60)}
+function hideOv(){$('ov').className='overlay hidden';$('ov').innerHTML=''}
+let toastT;
+function say(en){const p=PARTNERS[S.partner];const el=$('toast');el.innerHTML=`${pt(S.partner,44)}<div><strong>${p.short}:</strong> ${en}</div>`;hydrate(el);el.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('show'),3600)}
+function hideHint(){$('hint').classList.add('hidden');hintShown=false}
+
+function titleScreen(){
+ S.phase='title';$('hud').classList.add('hidden');
+ showOv(`<div class="sheet title-sheet"><div class="lesson">Taipei Tech · Email Safety</div><h1>Inbox Defender</h1><div class="subtitle">Campus Patrol</div>
+ <div class="cast">${pt('cat',72)}${pt('player',92,0)}${pt('kai',84)}${pt('owl',72)}${pt('hamster',72)}</div>
+ <p>Walk around campus with your partner. Students will show you their emails. Is each email safe, or is it phishing? Then stop The Phisher at the school gate!</p>
+ ${best?`<p class="muted">Your best score: ⭐ ${best} / 100</p>`:''}
+ <div class="actions" style="justify-content:center"><button class="btn big" onclick="unlockAudio();selectScreen()">Start my patrol</button></div>
+ <p class="muted small" style="margin-top:14px">All emails, senders, and fake websites in this game are made up for practice.</p></div>`,true);
+}
+function selectScreen(){
+ S.phase='select';
+ showOv(`<div class="sheet"><span class="chip">Your mission</span><h2>Choose your safety partner</h2>
+ <div class="bubble"><div class="who">${pt('kai',56)}<span>Kai <span class="muted">IT Help Desk leader</span></span></div><p class="ask">“Hi! Many students are getting strange emails. Please walk around campus and help them. First, choose a partner.”</p></div>
+ <div class="grid3">${Object.entries(PARTNERS).map(([id,v])=>`<button class="pcard" onclick="introScreen('${id}')">${pt(id,96)}<span><strong>${v.name}</strong><span class="muted">${v.role}</span></span></button>`).join('')}</div>
+ <p class="muted">All three partners are great helpers. Your partner can give you a hint for every email.</p></div>`);
+}
+function introScreen(id){
+ S.phase='intro';S.partner=id;const p=PARTNERS[id];
+ showOv(`<div class="sheet"><span class="chip">Your partner</span>
+ <div class="who" style="margin-top:8px">${pt(id,84)}<div><h2 style="margin:0">${p.name}</h2><div class="muted">${p.role}</div></div></div>
+ <div class="bubble"><p class="ask" style="margin:0">“${p.intro}”</p></div>
+ <h3>Choose your look</h3>
+ <div class="looks">${LOOKS.map((l,i)=>`<button class="look ${i===S.look?'sel':''}" onclick="pickLook(${i},this)" aria-pressed="${i===S.look}">${pt('player',72,i)}<div>${l.name}</div></button>`).join('')}</div>
+ <div class="story"><strong>How to play</strong>
+  <p style="margin:6px 0 0">🏫 Visit 9 places on campus. At each place, a student shows you an email.</p>
+  <p style="margin:4px 0 0">📨 Read it and choose <b>Safe</b> or <b>Phishing</b>. Each correct answer is worth ${EMAIL_PTS} points.</p>
+  <p style="margin:4px 0 0">🔍 Tap the blue button to see where the link really goes. Tap a dotted word to see its meaning.</p>
+  <p style="margin:4px 0 0">👾 Last stop: the school gate. Find 4 tricks in The Phisher’s email!</p>
+  <p style="margin:4px 0 0">🏆 Score ${PASS} or more to get your Inbox Defender certificate.</p></div>
+ <p class="muted">👆 Tap the ground or a building to walk. ⌨️ Arrow keys or WASD also work. Follow the bouncing <strong>!</strong></p>
+ <div class="actions"><button class="btn" onclick="startPlay()">Start walking</button><button class="btn secondary" onclick="selectScreen()">Choose another partner</button></div></div>`);
+}
+function pickLook(i){S.look=i;document.querySelectorAll('.look').forEach((b,j)=>{b.classList.toggle('sel',j===i);b.setAttribute('aria-pressed',j===i)})}
+function startPlay(){
+ hideOv();S.phase='play';S.modal=false;
+ P.x=(START[0]+.5)*T;P.y=(START[1]+.5)*T;P.dir='down';P.path=[];F.x=P.x-34;F.y=P.y;trail=[];lastTrig=-1;
+ camX=clampCam(P.x-cw/scale/2,cw/scale,W);camY=clampCam(P.y-ch/scale/2,ch/scale,H);
+ $('hud').classList.remove('hidden');updateHUD();
+ $('hint').classList.remove('hidden');hintShown=true;setTimeout(hideHint,7000);
+ const b=CENTERS[0];setTimeout(()=>say(`Let’s go to the ${b.icon} ${b.name} first. Alex needs help!`),600);beep([523,659,784]);
+}
+function updateHUD(){
+ $('hScore').textContent=S.score;const done=S.current>=10,b=CENTERS[Math.min(S.current,9)];
+ $('qCount').textContent=done?'10 / 10':`${S.current+1} / 10`;$('qIcon').textContent=done?'🏆':b.icon;$('qName').textContent=done?'Patrol complete!':b.name;$('qZh').textContent=done?'任務完成':b.zh;
+ $('dots').innerHTML=CENTERS.map((_,i)=>`<i class="dot ${i<S.current?'done':i===S.current?'now':''}"></i>`).join('');
+ $('goBtn').style.display=done?'none':'';
+}
+function goNext(){if(S.phase!=='play'||S.modal||S.current>9)return;unlockAudio();const b=CENTERS[S.current],[tx,ty]=ptile();if(b.triggers.some(([x,y])=>x===tx&&y===ty)){interact(S.current);return}const t=nearestTrigger(b);walkToTile(t[0],t[1]);hideHint()}
+function interact(bi){if(S.phase!=='play')return;if(bi===S.current)return openCenter(bi);infoToast(bi)}
+function infoToast(bi){
+ if(S.current>9)return;const b=CENTERS[bi],cur=CENTERS[S.current];beep([330],.08,'triangle',.04);
+ if(bi<S.current)say(`We already helped at the ${b.name}. Next stop: ${cur.icon} ${cur.name}!`);
+ else if(bi===9)say(`The gate is locked for now. Let’s go to the ${cur.icon} ${cur.name} first.`);
+ else say(`Not yet! Let’s go to the ${cur.icon} ${cur.name} first.`);
+}
+function showHelp(){
+ S.modal=true;clearKeys();
+ showOv(`<div class="sheet"><h2>❓ How to play</h2>
+ <div class="story"><p style="margin:0">👆 Tap the ground or a building to walk there. You can also use the arrow keys or WASD.</p>
+ <p style="margin:6px 0 0">❗ The bouncing ! shows your next stop. A student with a 📩 is waiting there.</p>
+ <p style="margin:6px 0 0">📨 Read the email. Choose <b>Safe</b> or <b>Phishing</b>. On a computer, press S or P.</p>
+ <p style="margin:6px 0 0">🔍 Check three things: the sender’s address, the link, and what the email asks you to do.</p>
+ <p style="margin:6px 0 0">💡 Stuck? Ask your partner for a hint.</p></div>
+ <div class="actions"><button class="btn" onclick="closeHelp()">Back to campus</button></div></div>`);
+}
+function closeHelp(){hideOv();S.modal=false}
+
+/* ---------- Email screens ---------- */
+function glossText(text,vocab,used){
+ let h=esc(text);if(!vocab)return h;
+ vocab.forEach(([en],i)=>{if(used.has(i))return;const m=h.match(new RegExp('\\b'+reEsc(esc(en))+'\\b','i'));
+  if(m){h=h.slice(0,m.index)+`<span class="gl" tabindex="0" role="button" data-i="${i}">${m[0]}</span>`+h.slice(m.index+m[0].length);used.add(i)}});
+ return h;
+}
+function mailHTML(e,boss){
+ const used=new Set(),v=boss?null:e.vocab;
+ let h=`<article class="mail${boss?' boss':''}" id="mail"><div class="mhead">
+  <div class="mrow"><span class="mk">From</span><span class="mv seg" data-seg="from"><b>${esc(e.fromName)}</b><br><span class="addr">&lt;${esc(e.fromAddr)}&gt;</span></span></div>
+  <div class="mrow"><span class="mk">To</span><span class="mv addr">you@ntut.edu.tw</span></div>
+  <div class="mrow"><span class="mk">Subject</span><span class="mv subj seg" data-seg="subject">${glossText(e.subject,v,used)}</span></div></div><div class="mbody">`;
+ for(const b of e.body)h+=b.id==='link'?`<p><button type="button" class="mlink seg" data-seg="link">🔗 ${esc(e.link.text)}</button></p>`:`<p class="seg" data-seg="${b.id}">${glossText(b.t,v,used)}</p>`;
+ return h+`</div><div class="stamp" id="stamp" aria-hidden="true"></div></article>`;
+}
+function urlHTML(url){const m=url.match(/^(https?):\/\/([^\/]+)(.*)$/);return `This link really goes to:<br><span class="url"><span class="proto-${m[1]}">${m[1]}://</span><b>${esc(m[2])}</b>${esc(m[3])}</span>`}
+function sheetHead(b,bi){return `<div class="sheet-head" style="background:${mixc(b.roof,'#000000',.18)}"><div class="bigicon">${b.icon}</div><div><div class="eyebrow">${bi<9?`Stop ${bi+1} of 10`:'Final stop'}</div><h2>${b.name}<span class="zhname">${b.zh}</span></h2></div><button class="close" id="closeX" aria-label="Back to campus without answering" onclick="closeCenter()">✕</button></div>`}
+function openCenter(bi){
+ S.modal=true;S.openB=bi;S.answered=false;P.path=[];clearKeys();beep([523,659],.07);
+ if(bi===9)return openBoss();
+ const e=EMAILS[bi],b=CENTERS[bi],p=PARTNERS[S.partner],[who,ask]=e.ask;
+ showOv(`<div class="sheet">${sheetHead(b,bi)}
+ <div class="stats"><span>Email ${bi+1} of 9</span><span>⭐ ${S.score} / 100</span></div><div class="progress"><div style="width:${bi*10}%"></div></div>
+ <div class="bubble"><div class="who">${pt(who,52)}<span>${PEOPLE[who].name} <span class="muted">${PEOPLE[who].role}</span></span></div><p class="ask">“${esc(ask)}”</p></div>
+ ${mailHTML(e,false)}
+ <div class="urlbar" id="urlbar">🔍 Tap the blue button to see where the link really goes. Tap a dotted word to see its meaning.</div>
+ <div id="wordtip" class="wordtip hidden" role="status" aria-live="polite"></div>
+ <div class="hintrow">${pt(S.partner,40)}<button class="btn secondary" id="hintBtn" onclick="showHintTxt()">💡 Ask ${p.short} for a hint</button><div class="hinttxt hidden" id="hintTxt"><strong>${p.short}:</strong> ${esc(e.hint)}</div></div>
+ <div class="judge"><button class="jbtn safe" onclick="judge('safe')">✅ Safe<small>A real email</small></button><button class="jbtn phish" onclick="judge('phish')">🎣 Phishing<small>A scam email</small></button></div>
+ <div id="feedback"></div><div id="next" class="actions hidden"></div></div>`);
+ const o=$('ov');
+ o.querySelector('.mlink').onclick=()=>{$('urlbar').innerHTML=urlHTML(e.link.url);S.inspected.add(bi);beep([880],.05)};
+ o.querySelectorAll('.gl').forEach(g=>{const show=()=>{const[en,zh]=e.vocab[+g.dataset.i];S.words.set(en,zh);const t=$('wordtip');t.textContent=`📖 ${en} = ${zh}`;t.classList.remove('hidden')};g.onclick=show;g.onkeydown=ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();show()}}});
+}
+function showHintTxt(){$('hintTxt').classList.remove('hidden');$('hintBtn').style.display='none'}
+function closeCenter(){if(S.answered||(S.openB===9&&S.bossTapped))return;hideOv();S.modal=false;say('Take your time. Tap the building when you are ready.')}
+function award(id){if(S.badges.has(id))return '';S.badges.add(id);const b=BADGES[id];return `<div class="newbadge">🏅 New badge: ${b.icon} ${b.name}</div>`}
+function judge(choice){
+ if(S.answered||S.openB<0||S.openB>8)return;S.answered=true;
+ const bi=S.openB,e=EMAILS[bi],p=PARTNERS[S.partner],right=(choice==='phish')===e.phish;
+ S.answers[bi]=right;e.vocab.forEach(([en,zh])=>S.words.set(en,zh));
+ let badges='';
+ if(right){S.score+=EMAIL_PTS;S.combo++;S.maxCombo=Math.max(S.maxCombo,S.combo);if(S.combo>=5)badges+=award('combo');if(e.badge)badges+=award(e.badge)}
+ else S.combo=0;
+ if(S.inspected.size>=6)badges+=award('inspector');
+ if(bi===8&&EMAILS.every((_,k)=>S.answers[k]))badges+=award('perfect');
+ updateHUD();
+ document.querySelectorAll('.jbtn').forEach(b=>{b.disabled=true;if(b.classList.contains(choice))b.classList.add('picked')});
+ $('closeX').style.display='none';if($('hintTxt').classList.contains('hidden'))$('ov').querySelector('.hintrow').style.display='none';
+ const st=$('stamp');st.textContent=choice==='phish'?'PHISHING':'SAFE';st.className='stamp show '+(choice==='phish'?'ph':'sf');
+ e.clues.forEach(cl=>$('ov').querySelector(`[data-seg="${cl.seg}"]`)?.classList.add('clue'));
+ $('urlbar').innerHTML=urlHTML(e.link.url);
+ const line=right?(e.phish?pick(['Nice catch! That was a phishing email.','Great eye! You protected our campus.']):pick(['Correct! That one is a real email.','Good job. Not every email is a trap.'])):(e.phish?'Oh no! That was phishing. Let’s look at the clues.':'Hmm, that email was actually real. Let’s see why.');
+ const cons=e.phish?'A student clicked the link, and the scammer got their information.':'A student missed an important real email.';
+ if(right)beep([659,784,1047]);else beep([392,330],.12,'triangle');
+ $('feedback').innerHTML=`<div class="fb ${right?'ok':'no'}"><div class="who">${pt(S.partner,48)}<span><strong>${p.short}:</strong> ${line}</span></div>
+  <p class="kind">${e.phish?'🎣 This is a phishing email.':'✅ This is a real email.'}</p>
+  ${right?`<p class="pts">+${EMAIL_PTS} points${S.combo>1?` · ${S.combo} in a row!`:''}</p>`:`<p class="cons">${cons}</p>`}
+  <p class="cluehead">${e.phish?'Warning signs (yellow in the email):':'Safe signs (yellow in the email):'}</p>
+  <ul class="clues">${e.clues.map(cl=>`<li><span class="where">${segName(cl.seg)}</span>${esc(cl.en)}<br><span class="term">${esc(cl.term)}</span></li>`).join('')}</ul>${badges}</div>`;
+ hydrate($('feedback'));
+ const nx=$('next');nx.classList.remove('hidden');
+ nx.innerHTML=`<button class="btn" onclick="leaveCenter()">${bi===8?'👾 Back to campus':'Back to campus'}</button>`;
+ setTimeout(()=>$('feedback').scrollIntoView({behavior:'smooth',block:'start'}),120);
+}
+function leaveCenter(){
+ const bi=S.openB;hideOv();S.modal=false;S.current=bi+1;updateHUD();
+ const b=CENTERS[bi];burst((b.doorX-camX)*scale,((b.y)*T-camY)*scale,30);
+ if(S.current<9){const n=CENTERS[S.current],who=PEOPLE[EMAILS[S.current].ask[0]].name;setTimeout(()=>say(`Nice work! Next stop: ${n.icon} ${n.name}. ${who} is waiting.`),350)}
+ else if(S.current===9){setTimeout(()=>{say('Oh no! The Phisher is at the school gate! Let’s go and stop him!');beep([330,294,262],.14,'triangle')},350)}
+}
+
+/* ---------- Boss ---------- */
+function openBoss(){
+ const b=CENTERS[9],p=PARTNERS[S.partner];S.bossStart=S.score;S.bossFound=new Set();S.bossTapped=false;
+ showOv(`<div class="sheet">${sheetHead(b,9)}
+ <div class="stats"><span>Boss email</span><span>⭐ <span id="bScore">${S.score}</span> / 100</span></div><div class="progress"><div style="width:90%"></div></div>
+ <div class="bubble villain"><div class="who">${pt('phisher',52)}<span>The Phisher <span class="muted">Mystery hacker</span></span></div><p class="ask">“Ha! My tuition email is in every inbox. You can’t stop me!”</p></div>
+ <div class="bubble"><div class="who">${pt(S.partner,44)}<span><strong>${p.short}:</strong> Tap the parts of the email that look suspicious. Find 4 to block it! Each one is +${CLUE_PTS} points. A wrong tap is −${WRONG_TAP}.</span></div></div>
+ <div class="words">📖 ${BOSS_WORDS.map(([en,zh])=>`${en} = ${zh}`).join('　')}</div>
+ <div class="bossbar"><span>👾 Tap the suspicious parts</span><span class="bosscount" id="bossCount">0 / ${BOSS.need}</span></div>
+ ${mailHTML(BOSS,true)}
+ <div class="urlbar" id="urlbar">You can tap the sender, the subject, any sentence, or the button.</div>
+ <ul class="bosslog" id="bossLog"></ul><div id="next" class="actions hidden"></div></div>`);
+ $('ov').querySelectorAll('.mail .seg').forEach(el=>el.onclick=()=>bossPick(el));
+}
+function bossPick(el){
+ if(S.answered)return;const seg=el.dataset.seg;if(S.bossFound.has(seg))return;
+ if(!S.bossTapped){S.bossTapped=true;$('closeX').style.display='none'}
+ if(seg==='link')$('urlbar').innerHTML=urlHTML(BOSS.link.url);
+ const log=$('bossLog'),c=BOSS.clues[seg];
+ if(c){S.bossFound.add(seg);el.classList.add('found');S.score+=CLUE_PTS;beep([659,880],.07);
+  log.insertAdjacentHTML('afterbegin',`<li class="good">✓ <b>${segName(seg)}</b> (+${CLUE_PTS})<br>${esc(c.en)}<br><span class="term" style="font-size:13px;font-weight:800;color:var(--soft-ink)">${esc(c.term)}</span></li>`);
+  $('bossCount').textContent=`${S.bossFound.size} / ${BOSS.need}`;
+  if(S.bossFound.size>=BOSS.need)bossEnd();
+ } else {
+  S.score=Math.max(S.bossStart,S.score-WRONG_TAP);beep([300],.1,'triangle');
+  el.classList.remove('shake');void el.offsetWidth;el.classList.add('shake');
+  log.insertAdjacentHTML('afterbegin',`<li class="bad">✗ Nothing wrong here. ${esc(BOSS.decoys[seg]||'')} <b>−${WRONG_TAP}</b></li>`);
+ }
+ $('bScore').textContent=S.score;updateHUD();
+}
+function bossEnd(){
+ S.answered=true;S.bossWon=true;S.score+=BOSS_WIN_PTS;S.answers[9]=true;BOSS_WORDS.forEach(([en,zh])=>S.words.set(en,zh));
+ const badge=award('boss');updateHUD();$('bScore').textContent=S.score;
+ Object.keys(BOSS.clues).forEach(k=>{if(!S.bossFound.has(k))$('ov').querySelector(`.mail [data-seg="${k}"]`)?.classList.add('missed')});
+ const st=$('stamp');st.textContent='BLOCKED';st.className='stamp show ph';
+ const nx=$('next');nx.classList.remove('hidden');
+ nx.insertAdjacentHTML('beforebegin',`<div class="fb ok"><p class="kind" style="margin-top:0">🛡️ You blocked the scam email! +${BOSS_WIN_PTS} points</p>
+  <div class="bubble villain" style="margin:8px 0"><div class="who">${pt('phisher',48)}<span>The Phisher: “No! How did you find my tricks?!”</span></div></div>
+  <p style="margin:0">${S.bossFound.size<5?'The clue you did not tap is yellow in the email. ':''}Kai sent a warning to the whole campus.</p>${badge}</div>`);
+ nx.innerHTML=`<button class="btn gold big" onclick="finish()">🏆 See my final score</button>`;hydrate($('ov'));
+ beep([523,659,784,1047],.09);burst(cw/2,ch*.35,50);
+ setTimeout(()=>nx.scrollIntoView({behavior:'smooth',block:'center'}),200);
+}
+
+/* ---------- End ---------- */
+function correctCount(){return EMAILS.reduce((n,_,k)=>n+(S.answers[k]?1:0),0)}
+function extrasHTML(){
+ const words=[...S.words].map(([en,zh])=>`<tr><td>${esc(en)}</td><td>${esc(zh)}</td></tr>`).join('');
+ return `<div class="endsec"><h3>📋 Your patrol report</h3><ul class="review-list">${CENTERS.slice(0,9).map((b,k)=>`<li><span>${b.icon} ${b.name}: ${esc(EMAILS[k].subject)}</span><strong>${S.answers[k]?'✅':'❌'}</strong></li>`).join('')}
+  <li><span>🚪 School Gate: The Phisher’s email</span><strong>${S.bossFound.size} / 5 clues</strong></li></ul>
+  <p class="muted">Emails correct: ${correctCount()} / 9. Remember to check the sender, the link, and what the email asks you to do.</p></div>
+ <div class="endsec"><h3>🏅 Badges</h3><div class="badges">${Object.entries(BADGES).map(([k,b])=>`<div class="badge ${S.badges.has(k)?'':'off'}"><span class="bi">${b.icon}</span><span><b>${b.name}</b>${b.desc}</span></div>`).join('')}</div></div>
+ <div class="endsec"><h3>📖 New words</h3><div style="overflow-x:auto"><table class="vtable">${words||'<tr><td>No words yet</td></tr>'}</table></div></div>
+ <div class="task"><h3>✍️ Task: Help your roommate</h3>
+  <div class="bubble"><div class="who">${pt('alex',48)}<span>Alex: “I got a strange email about the dorm Wi-Fi. It says I must type my password tonight. What should I do?”</span></div></div>
+  <p style="margin:0">On your paper, write a message to Alex in English (<b>80–100 words</b>). Tell him what is wrong with the email and what he should do.</p>
+  <p style="margin:12px 0 0;font-weight:800">✏️ Sentence starters: finish them in your own words.</p>
+  <ul class="starters">${['Be careful! This email is fake because …','First, look at the sender’s email address. It ends with …','The real school domain is ntut.edu.tw, but this email …','The email says your Wi-Fi will stop tonight. This is a trick to make you …','The page has HTTPS, but that does not mean …','Never type your password …','Instead, you should …','If you are still not sure, you can …'].map(t=>`<li>${esc(t)}</li>`).join('')}</ul></div>`;
+}
+function addStarter(b){const t=$('reply');t.value+=(t.value&&!t.value.endsWith(' ')?' ':'')+b.dataset.s;t.focus()}
+async function copyReport(){
+ const text=`Inbox Defender: Campus Patrol – Report\nName: ${studentName||'-'}\nScore: ${S.score} / 100 (${S.score>=PASS?'PASSED':'not passed yet'})\nEmails correct: ${correctCount()} / 9\nBoss clues found: ${S.bossFound.size} / 5\nBadges: ${[...S.badges].map(k=>BADGES[k].name).join(', ')||'None'}\n\nMy message to Alex:\n${$('reply').value.trim()}`;
+ let ok=false;try{await navigator.clipboard.writeText(text);ok=true}catch(e){}
+ if(!ok){try{const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();ok=document.execCommand('copy');ta.remove()}catch(e){}}
+ $('copied').textContent=ok?'Copied! Paste it where your teacher asks.':'Copy did not work. Please take a screenshot.';
+}
+function finish(){
+ S.current=10;S.phase='done';S.modal=true;updateHUD();
+ if(S.score>best){best=S.score;try{localStorage.setItem('inboxPatrolBest',best)}catch(e){}}
+ const sc=S.score;
+ if(sc>=PASS){
+  showOv(`<div class="sheet" style="text-align:center"><div style="font-size:58px;line-height:1.2">🏆</div><h2>Patrol complete!</h2><p class="score">${sc} / 100</p>
+  <div class="bubble" style="text-align:left"><div class="who">${pt('kai',56)}<span>Kai: “Amazing work! You are now an official Inbox Defender. Write your name, and I will make your certificate.”</span></div></div>
+  <div class="namebox"><label for="stuName"><strong>✍️ Your name for the certificate</strong></label><input id="stuName" maxlength="40" value="${esc(studentName)}" placeholder="Your name" autocomplete="name" onkeydown="if(event.key==='Enter'){event.preventDefault();showCert()}"><div id="nameErr" class="small" style="color:#d0563f;font-weight:800;margin-top:6px"></div></div>
+  <div class="actions" style="justify-content:center"><button class="btn gold big" onclick="showCert()">🎓 Get my certificate</button></div></div>`);
+  setTimeout(()=>{const i=$('stuName');if(i)i.focus({preventScroll:true})},120);
+  beep([523,659,784,1047],.09);burst(cw/2,ch*.3,50);
+ } else {
+  const p=PARTNERS[S.partner];
+  showOv(`<div class="sheet" style="text-align:center"><div style="font-size:58px;line-height:1.2">💪</div><h2>Almost there!</h2><p class="score">${sc} / 100</p>
+  <div class="bonus-pending">🎯 You need <strong>${PASS-sc} more points</strong>. Score ${PASS} or more to get your Inbox Defender certificate.</div>
+  <div class="bubble" style="text-align:left"><div class="who">${pt(S.partner,52)}<span>${p.short}: “Let’s look at the report, learn the clues, and try again. We can do it!”</span></div></div>
+  <div class="actions" style="justify-content:center"><button class="btn gold big" onclick="tryAgain()">🔄 Try again</button><button class="btn secondary" onclick="restart()">Choose another partner</button></div>
+  ${extrasHTML()}</div>`);
+  beep([440,392,349],.14,'triangle');
+ }
+}
+async function showCert(){
+ const inp=$('stuName'),n=(inp?inp.value:'').trim();
+ if(!n){$('nameErr').textContent='Please type your name first.';inp.focus();return}
+ studentName=n;try{localStorage.setItem('inboxPatrolName',n)}catch(e){}
+ showOv(`<div class="sheet ceremony"><div class="ribbon">🎉 Congratulations! 🎉</div><h2 style="margin-top:10px">You are an official Inbox Defender!</h2>
+ <div class="cert"><img id="certImg" alt="Certificate of Achievement for ${esc(n)}, score ${S.score} out of 100"></div>
+ <div class="shot">📸 Save it: long-press the picture on a phone, or right-click it on a computer. Show it to your teacher!</div>
+ <div class="actions" style="justify-content:center"><button class="btn secondary" onclick="finish()">✏️ Change my name</button><button class="btn" onclick="restart()">🔄 Play again</button></div>
+ ${extrasHTML()}</div>`);
+ rain();beep([523,659,784,1047,1319],.1);
+ try{$('certImg').src=await makeCert(n,S.score)}catch(e){}
+}
+async function makeCert(name,score){
+ const Wc=1600,Hc=1131,c=document.createElement('canvas');c.width=Wc;c.height=Hc;const g=c.getContext('2d');
+ const body='Nunito,"PingFang TC","Microsoft JhengHei","Noto Sans TC",sans-serif',disp='"Baloo 2",Nunito,sans-serif';
+ try{await Promise.all([document.fonts.load(`800 90px ${disp}`),document.fonts.load(`700 34px ${body}`,name),document.fonts.load('700 60px Caveat')])}catch(e){}
+ g.fillStyle='#fffdf6';g.fillRect(0,0,Wc,Hc);
+ const R=rng(3);for(let i=0;i<70;i++){g.fillStyle=['#ffd24a','#ff9ec4','#9fd3ff','#b6e3a8'][i%4];g.globalAlpha=.35;const x=R()*Wc,y=R()<.5?R()*120+20:Hc-R()*120-20;g.beginPath();g.arc(x,y,5+R()*6,0,7);g.fill()}g.globalAlpha=1;
+ g.strokeStyle='#3f74d6';g.lineWidth=14;rr(g,40,40,Wc-80,Hc-80,40);g.stroke();
+ g.strokeStyle='#f2a43a';g.lineWidth=4;g.setLineDash([16,12]);rr(g,72,72,Wc-144,Hc-144,28);g.stroke();g.setLineDash([]);
+ g.textAlign='center';g.textBaseline='alphabetic';
+ g.fillStyle='#66768c';g.font=`800 30px ${body}`;g.fillText('Taipei Tech IT Help Desk',Wc/2,170);
+ g.fillStyle='#3f74d6';g.font=`800 76px ${disp}`;g.fillText('Certificate of Achievement',Wc/2,272);
+ g.fillStyle='#66768c';g.font=`700 34px ${body}`;g.fillText('This certificate is proudly given to',Wc/2,360);
+ let size=110;do{g.font=`700 ${size}px Caveat,${body}`;size-=4}while(g.measureText(name).width>Wc-500&&size>44);
+ g.fillStyle='#1b3f8f';g.fillText(name,Wc/2,478);
+ g.strokeStyle='#2b3a4f';g.lineWidth=2.5;g.beginPath();g.moveTo(400,505);g.lineTo(Wc-400,505);g.stroke();
+ g.fillStyle='#2b3a4f';g.font=`700 34px ${body}`;
+ g.fillText('for completing the Campus Patrol as an official Inbox Defender',Wc/2,580);
+ g.fillText('and keeping Taipei Tech safe from phishing emails.',Wc/2,628);
+ g.fillStyle='#3aa86b';g.font=`800 50px ${disp}`;g.fillText(`Final score: ${score} / 100`,Wc/2,720);
+ const date=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+ g.fillStyle='#66768c';g.font=`700 26px ${body}`;g.fillText(`Awarded on ${date}`,Wc/2,766);
+ // characters
+ g.save();g.translate(Wc/2-120,1010);g.scale(2.6,2.6);drawChar(g,S.partner,0,0,'down',0,false);g.restore();
+ g.save();g.translate(Wc/2+30,1010);g.scale(2.9,2.9);drawChar(g,'player',0,0,'down',0,false,LOOKS[S.look]);g.restore();
+ // signatures
+ g.strokeStyle='#2b3a4f';g.lineWidth=2.5;g.beginPath();g.moveTo(190,955);g.lineTo(520,955);g.moveTo(Wc-520,955);g.lineTo(Wc-190,955);g.stroke();
+ g.fillStyle='#1b3f8f';g.font='700 64px Caveat,cursive';g.fillText('Kai',Wc-355,940);
+ g.fillStyle='#66768c';g.font=`700 26px ${body}`;g.fillText('Teacher',355,995);g.fillText('Kai, IT Help Desk leader',Wc-355,995);
+ // badge seal
+ const sx=165,sy=165;g.fillStyle='#f2b440';g.beginPath();for(let k=0;k<24;k++){const a=k/24*Math.PI*2,r=k%2?58:68;g.lineTo(sx+Math.cos(a)*r,sy+Math.sin(a)*r)}g.closePath();g.fill();
+ g.fillStyle='#fffaf0';g.beginPath();g.arc(sx,sy,47,0,7);g.fill();g.fillStyle='#c98a1d';g.font=`800 15px ${disp}`;g.fillText('INBOX',sx,sy+4);g.fillText('DEFENDER',sx,sy+22);g.font='20px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';g.fillText('🛡️',sx,sy-16);
+ return c.toDataURL('image/png');
+}
+function tryAgain(){resetRun();updateHUD();startPlay()}
+function restart(){S.partner=null;resetRun();S.modal=false;$('hud').classList.add('hidden');selectScreen()}
+
+addEventListener('keydown',e=>{
+ if(S.phase!=='play'||!S.modal||S.answered||S.openB<0||S.openB>8||!$('ov').querySelector('.jbtn'))return;
+ if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;
+ const k=e.key.toLowerCase();if(k==='s')judge('safe');if(k==='p')judge('phish');
+});
+/* ============ HELPERS ============ */
+function rr(c,x,y,w,h,r){r=Math.min(r,w/2,h/2);c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath()}
+function circ(c,x,y,r,col){c.fillStyle=col;c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fill()}
+function ell(c,x,y,rx,ry,col,rot=0){c.fillStyle=col;c.beginPath();c.ellipse(x,y,rx,ry,rot,0,Math.PI*2);c.fill()}
+function tri(c,a,b,d,e,f,g,col){c.fillStyle=col;c.beginPath();c.moveTo(a,b);c.lineTo(d,e);c.lineTo(f,g);c.closePath();c.fill()}
+function hex(h){h=h.replace('#','');return[parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]}
+function mixc(a,b,t){const A=hex(a),B=hex(b);return'#'+A.map((v,i)=>Math.round(v+(B[i]-v)*t).toString(16).padStart(2,'0')).join('')}
+function shadow(c,x,y,r){ell(c,x,y,r,r*.36,'rgba(30,60,30,.22)')}
+function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function faceOff(d){return d==='right'?3:d==='left'?-3:0}
+function eyesAt(c,x,y,d,sp=5){if(d==='up')return;const o=faceOff(d);for(const s of[-1,1]){const far=(d==='right'&&s<0)||(d==='left'&&s>0);const ex=x+s*sp+o,rx=far?2.1:2.6;ell(c,ex,y,rx,3.4,'#2a2230');circ(c,ex+.9,y-1.3,1,'#fff')}}
+function blush(c,x,y,d,sp=9){if(d==='up')return;const o=faceOff(d);for(const s of[-1,1])ell(c,x+s*sp+o,y,3.2,2,'rgba(255,120,130,.45)')}
+function smile(c,x,y,d){if(d==='up')return;c.strokeStyle='#7a3b35';c.lineWidth=1.4;c.lineCap='round';c.beginPath();c.arc(x+faceOff(d),y-1.5,2.4,.2*Math.PI,.8*Math.PI);c.stroke()}
+
+/* ============ CHARACTERS (original chibi designs) ============ */
+function drawHuman(c,x,y,dir,ph,mv,L){
+ const bob=mv?-Math.abs(Math.sin(ph))*2.5:Math.sin(ph)*.5;
+ shadow(c,x,y,12);c.save();c.translate(x,y+bob);
+ const side=dir==='left'||dir==='right';if(dir==='left')c.scale(-1,1);const d=side?'right':dir;
+ const skin='#ffdcbc',arm=L.suit?L.shirt:mixc(L.shirt,'#000000',.12),sw=mv?Math.sin(ph)*3:0;
+ if(L.style===1&&d!=='up'){c.fillStyle=L.hair;rr(c,-15,-43,30,25,11);c.fill()}
+ if(!L.noBag&&d==='right'){c.fillStyle=L.bag;rr(c,-15,-25,9,15,4);c.fill()}
+ c.fillStyle=L.pants;
+ if(d==='right'){const s=mv?Math.sin(ph)*4:0;rr(c,-4+s,-10,6,10,3);c.fill();rr(c,-2-s,-10,6,10,3);c.fill()}
+ else{const a=mv?Math.max(0,Math.sin(ph))*2.5:0,b=mv?Math.max(0,-Math.sin(ph))*2.5:0;rr(c,-7,-10-a,6,10,3);c.fill();rr(c,1,-10-b,6,10,3);c.fill()}
+ if(d!=='right'){circ(c,-10,-16+sw,3.6,arm);circ(c,10,-16-sw,3.6,arm)}
+ c.fillStyle=L.shirt;rr(c,-9,-24,18,16,7);c.fill();
+ if(L.suit&&d==='down'){tri(c,-4,-24,4,-24,0,-16,'#ffffff');tri(c,-1.6,-22,1.6,-22,0,-13,'#d9473f')}
+ if(!L.noBag){if(d==='up'){c.fillStyle=L.bag;rr(c,-8,-25,16,14,4);c.fill();c.fillStyle=mixc(L.bag,'#000000',.15);rr(c,-8,-25,16,5,3);c.fill()}
+  else if(d==='down'){c.strokeStyle=L.bag;c.lineWidth=2.5;c.beginPath();c.moveTo(-6,-24);c.lineTo(-6,-14);c.moveTo(6,-24);c.lineTo(6,-14);c.stroke()}}
+ if(d==='right')circ(c,1+sw,-16,3.6,arm);
+ circ(c,0,-36,14,skin);
+ c.fillStyle=L.hair;
+ if(L.style===2){if(d==='right')circ(c,-9,-50,6,L.hair);else circ(c,0,-53,6,L.hair)}
+ if(d==='up'){circ(c,0,-37,15,L.hair);if(L.style===1){rr(c,-14,-38,28,20,10);c.fill()}}
+ else if(d==='down'){c.beginPath();c.arc(0,-37,15,Math.PI*.95,Math.PI*2.05);c.quadraticCurveTo(9,-40,5,-32);c.quadraticCurveTo(0,-38,-5,-32);c.quadraticCurveTo(-9,-40,-14.8,-34.4);c.closePath();c.fill();
+  if(L.style===1){rr(c,-16,-37,6,18,3);c.fill();rr(c,10,-37,6,18,3);c.fill()}}
+ else{c.beginPath();c.arc(0,-37,15,Math.PI*.5,Math.PI*1.95);c.quadraticCurveTo(10,-37,6,-32);c.lineTo(-1,-32);c.quadraticCurveTo(-3,-26,-6,-23);c.closePath();c.fill()}
+ if(d!=='up'){eyesAt(c,0,-34,d);blush(c,0,-29,d);smile(c,0,-28,d);
+  if(L.headset){const o=faceOff(d);c.strokeStyle='#333a48';c.lineWidth=2;c.beginPath();c.arc(0,-38,16.5,Math.PI*1.08,Math.PI*1.92);c.stroke();c.fillStyle='#333a48';rr(c,(d==='right'?-17:-18),-40,6,10,3);c.fill();if(d!=='right'){rr(c,12,-40,6,10,3);c.fill()}c.lineWidth=1.6;c.beginPath();c.moveTo(-14,-32);c.quadraticCurveTo(-12,-25,-5+o,-26);c.stroke();circ(c,-4+o,-26,1.8,'#333a48')}
+  if(L.glasses){const o=faceOff(d);c.strokeStyle='#2b2f3a';c.lineWidth=1.4;c.beginPath();c.arc(-5+o,-34,4.6,0,7);c.stroke();c.beginPath();c.arc(5+o,-34,4.6,0,7);c.stroke();c.beginPath();c.moveTo(-.4+o,-34);c.lineTo(.4+o,-34);c.stroke()}}
+ c.restore();
+}
+function drawOwl(c,x,y,dir,ph,mv){
+ const hop=mv?-Math.abs(Math.sin(ph))*5:Math.sin(ph)*.8;shadow(c,x,y,12);
+ c.save();c.translate(x,y);if(dir==='left')c.scale(-1,1);const d=dir==='left'?'right':dir;
+ ell(c,-5,-2,4,2.4,'#f0a13a');ell(c,5,-2,4,2.4,'#f0a13a');c.translate(0,hop);
+ const body='#5e8db5',dark='#46719a',belly='#eaf2f8',o=faceOff(d);
+ tri(c,-13,-33,-8,-46,-3,-37,dark);tri(c,13,-33,8,-46,3,-37,dark);
+ const fl=mv?Math.sin(ph*2)*.35:Math.sin(ph)*.06;
+ for(const s of[-1,1]){c.save();c.translate(s*13,-20);c.rotate(s*(.25+fl));ell(c,0,6,5,10,dark);c.restore()}
+ ell(c,0,-21,16,19,body);
+ if(d==='up'){ell(c,0,-18,10,12,mixc(body,'#ffffff',.12));c.restore();return}
+ ell(c,o*.6,-13,10,11,belly);
+ c.strokeStyle='#c4d6e4';c.lineWidth=1.2;for(const[px,py]of[[-3,-14],[3,-12],[0,-8]]){c.beginPath();c.moveTo(px+o*.6-2,py);c.lineTo(px+o*.6,py+2);c.lineTo(px+o*.6+2,py);c.stroke()}
+ for(const s of[-1,1]){const far=(d==='right'&&s<0);const ex=s*6.5+o,r=far?4.6:5.8;circ(c,ex,-25,r,'#ffffff');circ(c,ex+o*.3,-25,r*.48,'#26303a');circ(c,ex+o*.3+1,-26.4,1,'#ffffff');
+  c.strokeStyle='#2b2f3a';c.lineWidth=1.6;c.beginPath();c.arc(ex,-25,r+1.4,0,7);c.stroke()}
+ c.beginPath();c.moveTo(o-.4,-25);c.lineTo(o+.4,-25);c.stroke();
+ tri(c,o-2.6,-20.5,o+2.6,-20.5,o,-16,'#f0a13a');
+ blush(c,0,-19,d,11);
+ tri(c,o-6,-6,o,-3.5,o-6,-1,'#d94f5c');tri(c,o+6,-6,o,-3.5,o+6,-1,'#d94f5c');circ(c,o,-3.5,1.6,'#b83d4a');
+ c.restore();
+}
+function drawCat(c,x,y,dir,ph,mv){
+ const bob=mv?-Math.abs(Math.sin(ph))*2.5:Math.sin(ph)*.5;shadow(c,x,y,11);
+ c.save();c.translate(x,y+bob);if(dir==='left')c.scale(-1,1);const d=dir==='left'?'right':dir;
+ const fur='#f2a65a',dark='#d9853b',cream='#fff1dc',o=faceOff(d),wag=Math.sin(ph*(mv?1:.6))*4;
+ c.strokeStyle=fur;c.lineWidth=6;c.lineCap='round';c.beginPath();c.moveTo(d==='up'?0:-7,-10);c.quadraticCurveTo(-20,-13,-15+wag,-28);c.stroke();circ(c,-15+wag,-28,3.2,dark);
+ const a=mv?Math.max(0,Math.sin(ph))*2.5:0,b=mv?Math.max(0,-Math.sin(ph))*2.5:0;
+ c.fillStyle=cream;rr(c,-7,-9-a,5,9,2.5);c.fill();rr(c,2,-9-b,5,9,2.5);c.fill();
+ ell(c,0,-15,10,9,fur);if(d!=='up')ell(c,o*.5,-13,6,6,cream);
+ c.fillStyle='#e04f5f';rr(c,-10,-24,20,6,3);c.fill();if(d==='down'){rr(c,3,-22,5,9,2);c.fill()}
+ circ(c,0,-33,14,fur);
+ for(const s of[-1,1]){tri(c,s*13,-37,s*11,-50,s*3,-45,fur);tri(c,s*10.5,-40,s*9.5,-46.5,s*5.5,-44,'#f7b6bd')}
+ c.strokeStyle=dark;c.lineWidth=2;for(const sx of[-4,0,4]){c.beginPath();c.moveTo(sx+o*.4,-46);c.lineTo(sx+o*.4,-41);c.stroke()}
+ if(d!=='up'){ell(c,o,-28,6.5,4.5,cream);eyesAt(c,0,-34,d);tri(c,o-1.8,-30.5,o+1.8,-30.5,o,-28.6,'#f08a9a');
+  c.strokeStyle='#7a3b35';c.lineWidth=1.1;c.beginPath();c.arc(o-1.6,-27.6,1.6,0,Math.PI);c.arc(o+1.6,-27.6,1.6,0,Math.PI);c.stroke();
+  c.strokeStyle='rgba(90,60,40,.55)';c.lineWidth=.9;for(const s of[-1,1])for(const k of[-1,1]){c.beginPath();c.moveTo(o+s*6,-28+k);c.lineTo(o+s*13,-29+k*2.4);c.stroke()}
+  blush(c,0,-30,d,10)}
+ c.restore();
+}
+function drawHamster(c,x,y,dir,ph,mv){
+ const bob=mv?-Math.abs(Math.sin(ph))*3:Math.sin(ph)*.6;shadow(c,x,y,13);
+ c.save();c.translate(x,y+bob);if(dir==='left')c.scale(-1,1);const d=dir==='left'?'right':dir;
+ const fur='#e7b375',cream='#fff3df',pink='#f5a3a8',o=faceOff(d);
+ const a=mv?Math.max(0,Math.sin(ph))*2:0,b=mv?Math.max(0,-Math.sin(ph))*2:0;
+ ell(c,-6,-2-a,4,2.5,pink);ell(c,6,-2-b,4,2.5,pink);
+ for(const s of[-1,1]){circ(c,s*10,-35,5.5,fur);circ(c,s*10,-35,3,pink)}
+ ell(c,0,-19,16,17,fur);
+ c.strokeStyle='#3d6fb8';c.lineWidth=3;c.beginPath();c.moveTo(-15,-28);c.quadraticCurveTo(0,-38,15,-28);c.stroke();
+ if(d==='up'){c.fillStyle='#9a6a43';rr(c,-14,-11,28,4,2);c.fill();c.restore();return}
+ ell(c,o*.6,-13,11,11,cream);ell(c,o,-24,9.5,7,cream);
+ for(const s of[-1,1]){const far=(d==='right'&&s<0);circ(c,s*5+o,-33,far?3.2:4.2,'#c9e8ff');c.strokeStyle='#3d6fb8';c.lineWidth=1.8;c.beginPath();c.arc(s*5+o,-33,far?3.2:4.2,0,7);c.stroke()}
+ circ(c,-9+o,-21,4.5,cream);circ(c,9+o,-21,4.5,cream);
+ eyesAt(c,0,-25,d,6);blush(c,0,-21,d,10);circ(c,o,-21.5,1.4,'#e9788a');c.fillStyle='#fff';c.fillRect(o-1.2,-19.6,2.4,2.4);
+ c.fillStyle='#9a6a43';rr(c,-14,-11,28,4,2);c.fill();c.fillStyle='#f2c94c';rr(c,o-2.5,-11.5,5,5,1.5);c.fill();
+ circ(c,-6+o,-15,2.8,fur);circ(c,6+o,-15,2.8,fur);
+ c.restore();
+}
+function drawPhisher(c,x,y,dir,ph){
+ const bob=Math.sin(ph)*1.5;shadow(c,x,y,13);c.save();c.translate(x,y+bob);if(dir==='left')c.scale(-1,1);
+ c.strokeStyle='#8a5a3b';c.lineWidth=2.6;c.lineCap='round';c.beginPath();c.moveTo(9,-16);c.lineTo(24,-58);c.stroke();
+ const sw=Math.sin(ph*.8)*3;c.strokeStyle='rgba(60,60,70,.7)';c.lineWidth=1;c.beginPath();c.moveTo(24,-58);c.lineTo(30+sw,-26);c.stroke();
+ c.fillStyle='#ffffff';rr(c,24+sw,-27,13,9,2);c.fill();c.strokeStyle='#d4443a';c.lineWidth=1.3;c.beginPath();c.moveTo(24+sw,-27);c.lineTo(30.5+sw,-22);c.lineTo(37+sw,-27);c.stroke();
+ c.fillStyle='#4d3c72';c.beginPath();c.moveTo(-15,-2);c.quadraticCurveTo(-16,-26,-11,-34);c.lineTo(11,-34);c.quadraticCurveTo(16,-26,15,-2);c.closePath();c.fill();
+ c.fillStyle='#3d2f5e';rr(c,-15,-6,30,5,2);c.fill();
+ circ(c,0,-37,15.5,'#4d3c72');tri(c,-4,-50,4,-50,0,-60,'#4d3c72');
+ ell(c,0,-34,10,10.5,'#1a1326');
+ ell(c,-4.2,-35,2.6,1.8,'#ff5a4e');ell(c,4.2,-35,2.6,1.8,'#ff5a4e');
+ c.strokeStyle='#ff5a4e';c.lineWidth=1.4;c.beginPath();c.arc(0,-31,3.4,.15*Math.PI,.85*Math.PI);c.stroke();
+ circ(c,9,-17,3.4,'#3d2f5e');circ(c,-10,-16,3.4,'#3d2f5e');
+ c.restore();
+}
+function drawChar(c,kind,x,y,dir,ph,mv,look){
+ if(kind==='player')return drawHuman(c,x,y,dir,ph,mv,look||LOOKS[S.look]);
+ if(NPC[kind])return drawHuman(c,x,y,dir,ph,mv,NPC[kind]);
+ if(kind==='phisher')return drawPhisher(c,x,y,dir,ph);
+ ({owl:drawOwl,cat:drawCat,hamster:drawHamster})[kind](c,x,y,dir,ph,mv);
+}
+function portrait(kind,size,look){
+ const cvs=document.createElement('canvas'),d=Math.min(3,window.devicePixelRatio||1);
+ cvs.width=size*d;cvs.height=size*d;cvs.style.width=cvs.style.height=size+'px';
+ const c=cvs.getContext('2d');c.scale(d*size/64,d*size/64);drawChar(c,kind,32,kind==='phisher'?62:60,'down',0,false,look);
+ cvs.setAttribute('role','img');cvs.setAttribute('aria-label',kind==='player'?'Your character':PARTNERS[kind]?PARTNERS[kind].name:PEOPLE[kind].name);
+ return cvs;
+}
+function pt(kind,size,look){return `<span class="pt" data-k="${kind}" data-s="${size}"${look!=null?` data-l="${look}"`:''}></span>`}
+function hydrate(root){root.querySelectorAll('.pt').forEach(s=>{if(s.firstChild)return;s.appendChild(portrait(s.dataset.k,+s.dataset.s||64,s.dataset.l!=null?LOOKS[+s.dataset.l]:null))})}
+/* ============ TOWN DRAWING ============ */
+function drawTree(c,x,y,v){
+ shadow(c,x,y-2,19);c.fillStyle='#8a5a3b';rr(c,x-5,y-22,10,20,4);c.fill();
+ const g=['#5cb85c','#4fae63','#6cc070'][v%3],dk=['#3f9a4c','#3a9150','#53a85c'][v%3];
+ circ(c,x-12,y-31,14,dk);circ(c,x+12,y-31,14,dk);circ(c,x,y-44,18,dk);
+ circ(c,x-10,y-34,12,g);circ(c,x+10,y-35,12,g);circ(c,x,y-47,15,g);
+ c.globalAlpha=.55;circ(c,x-6,y-53,5,'#a8e6a0');c.globalAlpha=1;
+ if(v%2){circ(c,x-9,y-30,2.6,'#ef5a5a');circ(c,x+8,y-41,2.6,'#ef5a5a');circ(c,x+3,y-30,2.6,'#ef5a5a')}
+ else if(v%3===0){circ(c,x-7,y-40,2.4,'#fff');circ(c,x+10,y-32,2.4,'#ffd1e0');circ(c,x+2,y-50,2.4,'#fff')}
+}
+function buildGround(f){
+ const g=document.createElement('canvas');g.width=Math.ceil(W*f);g.height=Math.ceil(H*f);
+ const c=g.getContext('2d');c.scale(f,f);const R=rng(7);
+ c.fillStyle='#9ed77b';c.fillRect(0,0,W,H);
+ for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++){if((x+y)%2){c.fillStyle='#a5dc83';c.fillRect(x*T,y*T,T,T)}}
+ c.strokeStyle='#84c062';c.lineWidth=2;c.lineCap='round';
+ for(let i=0;i<260;i++){const x=R()*W,y=R()*H;c.beginPath();c.moveTo(x-3,y-4);c.lineTo(x,y);c.lineTo(x+3,y-5);c.stroke()}
+ // paths
+ for(const pass of[0,1])for(const k of pathSet){const x=(k%COLS)*T,y=Math.floor(k/COLS)*T;c.fillStyle=pass?'#f3e2b4':'#e3cc93';const m=pass?1:-3;rr(c,x+m,y+m,T-m*2,T-m*2,pass?12:14);c.fill()}
+ for(const k of pathSet){const x=(k%COLS)*T,y=Math.floor(k/COLS)*T;for(let i=0;i<2;i++)ell(c,x+6+R()*36,y+6+R()*36,2.6,1.8,'#d8c08a')}
+ // pond
+ const px=POND.x*T,py=POND.y*T,pw=POND.w*T,ph=POND.h*T;
+ c.fillStyle='#cdbf9e';rr(c,px-6,py-4,pw+12,ph+10,34);c.fill();
+ c.fillStyle='#5bb8e0';rr(c,px,py,pw,ph,30);c.fill();c.fillStyle='#7fd0f0';rr(c,px+8,py+6,pw-16,ph-18,24);c.fill();
+ c.strokeStyle='rgba(255,255,255,.7)';c.lineWidth=2;[[px+30,py+24],[px+90,py+50],[px+110,py+20]].forEach(([a,b])=>{c.beginPath();c.moveTo(a,b);c.lineTo(a+14,b);c.stroke()});
+ for(const[a,b]of[[px+40,py+60],[px+105,py+38]]){ell(c,a,b,9,6,'#58a84e');tri(c,a,b,a+10,b-3,a+10,b+3,'#7fd0f0')}
+ circ(c,px+112,py+34,3,'#ff9ec4');
+ // flowers
+ const cols=['#ffffff','#ffd24a','#ff8fb3','#b99cff','#ff7a6b'];
+ for(let y=1;y<ROWS-1;y++)for(let x=1;x<COLS-1;x++){const k=idx(x,y);if(!walk[k]||pathSet.has(k))continue;if(R()<.22){const n=2+Math.floor(R()*3),col=cols[Math.floor(R()*cols.length)];for(let i=0;i<n;i++){const fx=x*T+8+R()*32,fy=y*T+8+R()*32;for(let p=0;p<5;p++){const a=p/5*Math.PI*2;circ(c,fx+Math.cos(a)*2.6,fy+Math.sin(a)*2.6,2,col)}circ(c,fx,fy,1.6,'#f6b33a')}}}
+ // fence along the inner border
+ c.strokeStyle='#c99a6b';c.lineWidth=3;
+ // border trees
+ for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++){if(y===0||y===ROWS-1||x===0||x===COLS-1)drawTree(c,(x+.5)*T,(y+1)*T-2,x*7+y*3)}
+ return g;
+}
+function win(c,x,y,w,h,frame){
+ c.fillStyle=frame;rr(c,x-2,y-2,w+4,h+4,6);c.fill();
+ const gr=c.createLinearGradient(x,y,x+w,y+h);gr.addColorStop(0,'#d6eeff');gr.addColorStop(1,'#8fc2ef');c.fillStyle=gr;rr(c,x,y,w,h,5);c.fill();
+ c.strokeStyle=frame;c.lineWidth=2;c.beginPath();c.moveTo(x+w/2,y);c.lineTo(x+w/2,y+h);c.moveTo(x,y+h/2);c.lineTo(x+w,y+h/2);c.stroke();
+ c.fillStyle='rgba(255,255,255,.65)';c.fillRect(x+3,y+3,4,7);
+}
+function drawBuilding(c,b,i){
+ const x=b.x*T,y=b.y*T,w=b.w*T,h=b.h*T,cx=b.doorX,bot=y+h,dk=mixc(b.roof,'#000000',.25);
+ ell(c,cx,bot-2,w/2+8,13,'rgba(30,70,30,.2)');
+ if(b.gate)return drawGate(c,b,x,y,w,h,cx,bot);
+ const wt=y+40;
+ c.fillStyle=b.wall;rr(c,x+8,wt,w-16,bot-wt-2,10);c.fill();c.strokeStyle='rgba(60,50,40,.16)';c.lineWidth=2;c.stroke();
+ c.fillStyle='rgba(120,100,80,.16)';rr(c,x+8,bot-13,w-16,11,4);c.fill();
+ for(const wx of[x+20,x+w-46]){win(c,wx,wt+28,26,24,dk);c.fillStyle='#a0643f';rr(c,wx-3,wt+55,32,7,3);c.fill();for(let k=0;k<4;k++)circ(c,wx+2+k*7.5,wt+54,2.8,['#ff8fb3','#ffd24a','#fff','#ff7a6b'][(k+i)%4])}
+ c.fillStyle=mixc(b.roof,'#5a3a26',.55);c.beginPath();c.moveTo(cx-15,bot-3);c.lineTo(cx-15,bot-34);c.arc(cx,bot-34,15,Math.PI,0);c.lineTo(cx+15,bot-3);c.closePath();c.fill();
+ circ(c,cx+8,bot-20,2,'#f2c94c');
+ c.fillStyle='#fff';rr(c,cx-22,bot-58,44,10,5);c.fill();
+ for(let k=0;k<4;k++){c.fillStyle=k%2?'#fff':b.roof;rr(c,cx-22+k*11,bot-58,11,10,k===0||k===3?5:0);c.fill()}
+ c.fillStyle=b.roof;c.beginPath();c.moveTo(x-3,wt+12);c.lineTo(x+16,y-8);c.quadraticCurveTo(cx,y-24,x+w-16,y-8);c.lineTo(x+w+3,wt+12);c.quadraticCurveTo(cx,wt+20,x-3,wt+12);c.closePath();c.fill();
+ c.strokeStyle=mixc(b.roof,'#ffffff',.25);c.lineWidth=3;for(const yy of[y+8,y+26]){c.beginPath();c.moveTo(x+10,yy+4);c.quadraticCurveTo(cx,yy-6,x+w-10,yy+4);c.stroke()}
+ c.fillStyle='rgba(0,0,0,.08)';c.fillRect(x+8,wt+14,w-16,6);
+ circ(c,cx,y+10,18,'#fffaf0');c.strokeStyle=dk;c.lineWidth=3;c.beginPath();c.arc(cx,y+10,18,0,7);c.stroke();
+ c.font='20px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(b.icon,cx,y+11);
+ if(i<S.current){c.strokeStyle='#8a5a3b';c.lineWidth=2.5;c.beginPath();c.moveTo(x+w-14,y-6);c.lineTo(x+w-14,y-34);c.stroke();tri(c,x+w-14,y-34,x+w+6,y-28,x+w-14,y-22,'#3aa86b')}
+}
+function drawTower(c,b,x,y,w,h,cx,bot){
+ const top=y-56;
+ c.fillStyle='#dfe8f7';rr(c,x+10,top,w-20,bot-top,12);c.fill();
+ c.fillStyle='#c9d6ec';rr(c,x+w-40,top,30,bot-top,12);c.fill();
+ for(let r=0;r<5;r++)for(let k=0;k<4;k++)win(c,x+28+k*37,top+40+r*30,22,18,'#5a74a8');
+ c.fillStyle=b.roof;rr(c,x+4,top-12,w-8,20,9);c.fill();
+ c.strokeStyle='#6b6f7a';c.lineWidth=3;c.beginPath();c.moveTo(cx,top-12);c.lineTo(cx,top-46);c.stroke();
+ const wv=Math.sin(time*4)*3;c.fillStyle='#f2b544';c.beginPath();c.moveTo(cx,top-46);c.quadraticCurveTo(cx+12,top-44+wv,cx+24,top-40);c.lineTo(cx,top-32);c.closePath();c.fill();
+ c.fillStyle='#f2b544';rr(c,cx-58,top+10,116,24,10);c.fill();
+ c.fillStyle='#2e4a7d';c.font='800 15px "Baloo 2",Nunito,sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText('IT HELP DESK',cx,top+23);
+ c.fillStyle=b.roof;rr(c,cx-36,bot-70,72,12,6);c.fill();
+ c.fillStyle='#a9cdf3';rr(c,cx-26,bot-56,52,52,4);c.fill();c.strokeStyle=b.roof;c.lineWidth=3;c.strokeRect(cx-26,bot-56,52,52);c.beginPath();c.moveTo(cx,bot-56);c.lineTo(cx,bot-4);c.stroke();
+ for(const s of[-1,1]){c.fillStyle='#b98a5e';rr(c,cx+s*48-10,bot-20,20,16,4);c.fill();circ(c,cx+s*48,bot-26,11,'#4fae63');circ(c,cx+s*48-3,bot-30,6,'#6cc070')}
+}
+function drawFountain(c,x,y){
+ ell(c,x,y-14,46,26,'#b9b2a4');ell(c,x,y-17,44,24,'#d6d0c3');ell(c,x,y-18,36,18,'#6cc4ea');
+ c.strokeStyle='rgba(255,255,255,.6)';c.lineWidth=1.5;for(let k=0;k<2;k++){const r=((time*.6+k*.5)%1);c.globalAlpha=1-r;c.beginPath();c.ellipse(x,y-18,8+r*26,4+r*12,0,0,7);c.stroke()}c.globalAlpha=1;
+ c.fillStyle='#d6d0c3';rr(c,x-6,y-48,12,30,4);c.fill();ell(c,x,y-48,15,6,'#c8c1b2');ell(c,x,y-49,11,4,'#6cc4ea');
+ for(let k=0;k<10;k++){const p=(time*1.1+k/10)%1,a=k/10*Math.PI*2;circ(c,x+Math.cos(a)*p*26,y-50-30*p+52*p*p+Math.sin(a)*p*6,2,'#c8ecff')}
+}
+
+function drawGate(c,b,x,y,w,h,cx,bot){
+ const open=S.current>=9||S.phase==='done',top=y-18,pl=34,stone='#e7dccb',sd='#cbbca4';
+ for(const px of[x+8,x+w-8-pl]){c.fillStyle=sd;rr(c,px+4,top+30,pl,bot-top-32,8);c.fill();c.fillStyle=stone;rr(c,px,top+26,pl,bot-top-30,8);c.fill();
+  c.fillStyle='rgba(120,100,80,.18)';for(let k=0;k<4;k++)c.fillRect(px+4,top+54+k*26,pl-8,3);
+  c.fillStyle=b.roof;rr(c,px-5,top+18,pl+10,14,6);c.fill();circ(c,px+pl/2,top+12,6,'#f2c94c')}
+ c.fillStyle=b.roof;rr(c,x+2,top+2,w-4,30,12);c.fill();c.fillStyle=mixc(b.roof,'#ffffff',.18);rr(c,x+8,top+6,w-16,8,4);c.fill();
+ c.fillStyle='#fffaf0';rr(c,cx-62,top-22,124,30,11);c.fill();c.strokeStyle=b.roof;c.lineWidth=3;c.stroke();
+ c.fillStyle=b.roof;c.font='800 15px "Baloo 2",Nunito,sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText('TAIPEI TECH',cx,top-6);
+ const gx=x+8+pl,gw=w-16-pl*2,gy=top+40,gh=bot-gy-6;
+ c.strokeStyle='#4a4f5c';c.lineWidth=3.2;
+ if(!open){c.beginPath();c.moveTo(gx,gy);c.lineTo(gx+gw,gy);c.moveTo(gx,gy+gh*.55);c.lineTo(gx+gw,gy+gh*.55);c.stroke();
+  for(let k=1;k<9;k++){const bx=gx+k*gw/9;c.beginPath();c.moveTo(bx,gy-6);c.lineTo(bx,gy+gh);c.stroke();tri(c,bx-3,gy-6,bx+3,gy-6,bx,gy-13,'#4a4f5c')}}
+ else{for(const s of[0,1]){const ex=s?gx+gw:gx,dirn=s?-1:1;c.beginPath();for(let k=0;k<3;k++){const bx=ex+dirn*k*7;c.moveTo(bx,gy-4);c.lineTo(bx,gy+gh)}c.moveTo(ex,gy);c.lineTo(ex+dirn*16,gy);c.stroke()}}
+}
+function drawLabel(c,b,i){
+ const done=i<S.current,active=i===S.current&&S.phase==='play',cx=b.doorX,ly=b.gate?b.y*T-92:b.y*T-38;
+ const t1=b.name;c.font='800 15px "Baloo 2",Nunito,sans-serif';const w1=c.measureText(t1).width;
+ c.font='700 12px Nunito,"PingFang TC","Microsoft JhengHei",sans-serif';const w2=c.measureText(b.zh).width;
+ const bw=Math.max(w1,w2)+48,bh=38,bx=cx-bw/2,by=ly-bh/2;
+ c.fillStyle=active?'#fff3c4':'rgba(255,255,255,.95)';rr(c,bx,by,bw,bh,14);c.fill();
+ c.strokeStyle=active?'#f2a43a':done?'#5cbf86':'#d9d2c2';c.lineWidth=2.5;c.stroke();
+ circ(c,bx+15,ly,10,done?'#3aa86b':active?(b.gate?'#d4443a':'#f2a43a'):'#c4bba6');
+ c.fillStyle='#fff';c.font='800 12px Nunito,sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(done?'✓':String(i+1),bx+15,ly+.5);
+ c.fillStyle='#2b3a4f';c.font='800 15px "Baloo 2",Nunito,sans-serif';c.fillText(t1,cx+9,ly-6);
+ c.fillStyle='#6a7a8f';c.font='700 12px Nunito,"PingFang TC","Microsoft JhengHei",sans-serif';c.fillText(b.zh,cx+9,ly+10);
+ if(active){const my=by-20+Math.sin(time*5)*5,col=b.gate?'#d4443a':'#f2a43a';tri(c,cx-7,my+8,cx+7,my+8,cx,my+17,col);circ(c,cx,my,13,col);c.fillStyle='#fff';c.font='900 17px Nunito,sans-serif';c.fillText('!',cx,my+1)}
+}
+function askerPos(b){return{x:(b.x+b.w-.35)*T,y:(b.y+b.h+.85)*T}}
+function drawMailBubble(c,x,y){
+ const by=y-78+Math.sin(time*4)*3;
+ c.fillStyle='#fffaf0';rr(c,x-17,by-14,34,26,10);c.fill();c.strokeStyle='#f2a43a';c.lineWidth=2.5;c.stroke();
+ tri(c,x-5,by+11,x+5,by+11,x,by+19,'#f2a43a');
+ c.fillStyle='#ffffff';rr(c,x-10,by-7,20,13,2);c.fill();c.strokeStyle='#d4443a';c.lineWidth=1.6;c.strokeRect(x-10,by-7,20,13);c.beginPath();c.moveTo(x-10,by-7);c.lineTo(x,by+1);c.lineTo(x+10,by-7);c.stroke();
+}
+/* ============ PATHFINDING ============ */
+const DIRS=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+function hcost(ax,ay,bx,by){const dx=Math.abs(ax-bx),dy=Math.abs(ay-by);return Math.max(dx,dy)+.414*Math.min(dx,dy)}
+function findPath(sx,sy,tx,ty){
+ if(sx===tx&&sy===ty)return[];
+ const N=COLS*ROWS,g=new Float32Array(N).fill(1e9),f=new Float32Array(N).fill(1e9),from=new Int32Array(N).fill(-1),closed=new Uint8Array(N),inOpen=new Uint8Array(N);
+ const s=idx(sx,sy),goal=idx(tx,ty),open=[s];g[s]=0;f[s]=hcost(sx,sy,tx,ty);inOpen[s]=1;
+ while(open.length){let bi=0;for(let i=1;i<open.length;i++)if(f[open[i]]<f[open[bi]])bi=i;const cur=open.splice(bi,1)[0];inOpen[cur]=0;
+  if(cur===goal)break;closed[cur]=1;const cx=cur%COLS,cy=(cur/COLS)|0;
+  for(const[dx,dy]of DIRS){const nx=cx+dx,ny=cy+dy;if(nx<0||ny<0||nx>=COLS||ny>=ROWS)continue;const ni=idx(nx,ny);if(!walk[ni]||closed[ni])continue;
+   if(dx&&dy&&(!walk[idx(cx+dx,cy)]||!walk[idx(cx,cy+dy)]))continue;const ng=g[cur]+(dx&&dy?1.414:1);
+   if(ng<g[ni]){g[ni]=ng;f[ni]=ng+hcost(nx,ny,tx,ty);from[ni]=cur;if(!inOpen[ni]){open.push(ni);inOpen[ni]=1}}}}
+ if(from[goal]<0)return null;const out=[];let k=goal;while(k!==s){out.unshift({x:(k%COLS+.5)*T,y:(Math.floor(k/COLS)+.5)*T});k=from[k]}return out;
+}
+function nearestWalk(tx,ty){tx=Math.max(0,Math.min(COLS-1,tx));ty=Math.max(0,Math.min(ROWS-1,ty));const seen=new Set([idx(tx,ty)]),q=[[tx,ty]];
+ while(q.length){const[x,y]=q.shift();if(walk[idx(x,y)])return[x,y];for(const[dx,dy]of DIRS.slice(0,4)){const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=COLS||ny>=ROWS)continue;const k=idx(nx,ny);if(!seen.has(k)){seen.add(k);q.push([nx,ny])}}}return[tx,ty]}
+function ptile(){return[Math.floor(P.x/T),Math.floor(P.y/T)]}
+function walkToTile(tx,ty){const[sx,sy]=ptile();const p=findPath(sx,sy,tx,ty);if(p){P.path=p;ripple={x:(tx+.5)*T,y:(ty+.5)*T,t:0}}}
+function nearestTrigger(b){const[sx,sy]=ptile();return b.triggers.slice().sort((a,c)=>hcost(sx,sy,a[0],a[1])-hcost(sx,sy,c[0],c[1]))[0]}
+function freeAt(x,y){return[[x-9,y-5],[x+9,y-5],[x-9,y+3],[x+9,y+3]].every(([px,py])=>{const tx=Math.floor(px/T),ty=Math.floor(py/T);return tx>=0&&ty>=0&&tx<COLS&&ty<ROWS&&walk[idx(tx,ty)]})}
+
+/* ============ GAME LOOP ============ */
+const keys={};
+function update(dt){
+ time+=dt;
+ const vw=cw/scale,vh=ch/scale;
+ if(S.phase==='title'||S.phase==='select'||S.phase==='intro'){
+  const tx=W/2-vw/2+Math.sin(time*.12)*W*.28,ty=H/2-vh/2+Math.cos(time*.1)*H*.22;camX=clampCam(tx,vw,W);camY=clampCam(ty,vh,H);updButter(dt);return;
+ }
+ let mx=0,my=0;
+ if(S.phase==='play'&&!S.modal){if(keys.arrowleft||keys.a)mx--;if(keys.arrowright||keys.d)mx++;if(keys.arrowup||keys.w)my--;if(keys.arrowdown||keys.s)my++}
+ const sp=SPEED*dt;
+ if(mx||my){P.path=[];const l=Math.hypot(mx,my);mx/=l;my/=l;
+  if(freeAt(P.x+mx*sp,P.y))P.x+=mx*sp;if(freeAt(P.x,P.y+my*sp))P.y+=my*sp;
+  P.moving=true;P.dir=Math.abs(mx)>Math.abs(my)?(mx<0?'left':'right'):(my<0?'up':'down')}
+ else if(P.path.length&&!S.modal){const n=P.path[0],dx=n.x-P.x,dy=n.y-P.y,dd=Math.hypot(dx,dy);
+  if(dd<=sp){P.x=n.x;P.y=n.y;P.path.shift()}else{P.x+=dx/dd*sp;P.y+=dy/dd*sp}
+  P.moving=true;if(dd>.5)P.dir=Math.abs(dx)>Math.abs(dy)?(dx<0?'left':'right'):(dy<0?'up':'down')}
+ else P.moving=false;
+ P.ph+=dt*(P.moving?12:3);
+ const lt=trail[trail.length-1];if(!lt||Math.hypot(P.x-lt.x,P.y-lt.y)>3)trail.push({x:P.x,y:P.y});if(trail.length>80)trail.shift();
+ const tg=trail[Math.max(0,trail.length-12)];
+ if(tg){const dx=tg.x-F.x,dy=tg.y-F.y,dd=Math.hypot(dx,dy),fs=SPEED*1.08*dt;
+  if(dd>2){const st=Math.min(dd,fs);F.x+=dx/dd*st;F.y+=dy/dd*st;F.moving=true;F.dir=Math.abs(dx)>Math.abs(dy)?(dx<0?'left':'right'):(dy<0?'up':'down')}
+  else{F.moving=false;if(!P.moving)F.dir=P.dir==='up'?'up':F.dir}}
+ F.ph+=dt*(F.moving?12:3);
+ if(S.phase==='play')checkTrig();
+ let tx=P.x-vw/2,ty=P.y-30-vh/2;tx=clampCam(tx,vw,W);ty=clampCam(ty,vh,H);
+ const k=Math.min(1,dt*6);camX+=(tx-camX)*k;camY+=(ty-camY)*k;
+ if(ripple){ripple.t+=dt;if(ripple.t>.7)ripple=null}
+ updButter(dt);
+ if(P.moving&&hintShown)hideHint();
+}
+function clampCam(v,view,world){return view>=world?(world-view)/2:Math.max(0,Math.min(world-view,v))}
+function updButter(dt){butterflies.forEach(b=>{b.p+=dt;b.x+=Math.cos(b.p*.5)*40*dt;b.y+=Math.sin(b.p*.8)*30*dt;b.x=Math.max(60,Math.min(W-60,b.x));b.y=Math.max(60,Math.min(H-60,b.y))})}
+function checkTrig(){
+ const[tx,ty]=ptile(),k=idx(tx,ty),b=trigMap.has(k)?trigMap.get(k):-1;
+ if(b!==lastTrig){lastTrig=b;pendingInfo=-1;if(b>=0&&!S.modal){if(b===S.current){P.path=[];openCenter(b)}else pendingInfo=b}}
+ if(!P.moving&&pendingInfo>=0&&pendingInfo===b){infoToast(b);pendingInfo=-1}
+}
+function render(){
+ const c=ctx;c.setTransform(dpr,0,0,dpr,0,0);c.fillStyle='#7cc35f';c.fillRect(0,0,cw,ch);
+ c.save();c.scale(scale,scale);c.translate(-camX,-camY);
+ if(ground)c.drawImage(ground,0,0,W,H);
+ if(ripple){c.strokeStyle=`rgba(255,255,255,${1-ripple.t/.7})`;c.lineWidth=3;c.beginPath();c.ellipse(ripple.x,ripple.y+10,8+ripple.t*30,4+ripple.t*14,0,0,7);c.stroke()}
+ if(S.phase==='play'&&S.current<10){const b=CENTERS[S.current],pu=.5+.5*Math.sin(time*4);b.triggers.forEach(([x,y])=>{ell(c,(x+.5)*T,(y+.5)*T,20+pu*4,10+pu*2,`rgba(255,214,90,${.35+pu*.3})`)})}
+ const objs=[];
+ CENTERS.forEach((b,i)=>objs.push({y:(b.y+b.h)*T,f:()=>drawBuilding(c,b,i)}));
+ objs.push({y:(HQ.y+HQ.h)*T,f:()=>{const x=HQ.x*T,y=HQ.y*T,w=HQ.w*T,h=HQ.h*T;ell(c,HQ.doorX,y+h-2,w/2+8,13,'rgba(30,70,30,.2)');drawTower(c,HQ,x,y,w,h,HQ.doorX,y+h)}});
+ TREES.forEach(([tx,ty],i)=>objs.push({y:(ty+1)*T-4,f:()=>drawTree(c,(tx+.5)*T,(ty+1)*T-4,i)}));
+ objs.push({y:(FOUNT.y+2)*T,f:()=>drawFountain(c,(FOUNT.x+1)*T,(FOUNT.y+2)*T-8)});
+ objs.push({y:(KAI_T[1]+1)*T-6,f:()=>drawChar(c,'kai',(KAI_T[0]+.5)*T,(KAI_T[1]+1)*T-8,'left',time*2,false)});
+ if(S.current===9&&!S.bossWon&&S.phase==='play'){const px=(PH_T[0]+.5)*T,py=(PH_T[1]+1)*T-8;objs.push({y:py,f:()=>{drawChar(c,'phisher',px,py,'left',time*3,false)}})}
+ if(S.phase==='play'&&S.current<9){const b=CENTERS[S.current],a=askerPos(b),who=EMAILS[S.current].ask[0];objs.push({y:a.y,f:()=>{drawChar(c,who,a.x,a.y,'left',time*2,false);drawMailBubble(c,a.x,a.y)}})}
+ if(S.partner&&(S.phase==='play'||S.phase==='done')){
+  objs.push({y:F.y,f:()=>drawChar(c,S.partner,F.x,F.y,F.dir,F.ph,F.moving)});
+  objs.push({y:P.y+.1,f:()=>drawChar(c,'player',P.x,P.y,P.dir,P.ph,P.moving,LOOKS[S.look])});
+ }
+ objs.sort((a,b)=>a.y-b.y).forEach(o=>o.f());
+ butterflies.forEach(b=>{const fl=Math.abs(Math.sin(time*14+b.p))*5+1;ell(c,b.x-3,b.y,fl,4,b.c);ell(c,b.x+3,b.y,fl,4,b.c);ell(c,b.x,b.y,1.2,3.5,'#5a4632')});
+ CENTERS.forEach((b,i)=>drawLabel(c,b,i));
+ c.restore();
+ drawArrow(c);
+}
+function drawArrow(c){
+ if(S.phase!=='play'||S.modal||S.current>9)return;const b=CENTERS[S.current];
+ const sx=(b.doorX-camX)*scale,sy=((b.y+b.h)*T-60-camY)*scale,m=44;
+ if(sx>m&&sx<cw-m&&sy>150&&sy<ch-m)return;
+ const cx=cw/2,cy=ch/2,dx=sx-cx,dy=sy-cy,k=Math.min((cw/2-m)/Math.max(1e-3,Math.abs(dx)),(ch/2-m)/Math.max(1e-3,Math.abs(dy)));
+ let ax=cx+dx*k,ay=Math.max(170,Math.min(ch-m,cy+dy*k));const an=Math.atan2(sy-ay,sx-ax),bo=Math.sin(time*5)*3;
+ ax+=Math.cos(an)*bo;ay+=Math.sin(an)*bo;
+ c.save();c.translate(ax,ay);c.rotate(an);tri(c,24,0,14,-9,14,9,'#f2a43a');c.restore();
+ circ(c,ax,ay,21,'#fffaf0');c.strokeStyle='#f2a43a';c.lineWidth=3;c.beginPath();c.arc(ax,ay,21,0,7);c.stroke();
+ c.font='20px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(b.icon,ax,ay+1);
+}
+function fxStep(dt){
+ fx.setTransform(dpr,0,0,dpr,0,0);fx.clearRect(0,0,cw,ch);if(!parts.length)return;
+ parts.forEach(p=>{p.vy+=p.g*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.r+=p.vr*dt;p.life-=dt;fx.save();fx.translate(p.x,p.y);fx.rotate(p.r);fx.globalAlpha=Math.max(0,Math.min(1,p.life));fx.fillStyle=p.c;fx.fillRect(-p.s/2,-p.s/4,p.s,p.s/2);fx.restore()});
+ parts=parts.filter(p=>p.life>0&&p.y<ch+40);
+}
+const CONF=['#f2a43a','#3f74d6','#3aa86b','#df6890','#ffd24a','#8c6bd6'];
+function burst(sx,sy,n=36){for(let i=0;i<n;i++)parts.push({x:sx,y:sy,vx:(Math.random()-.5)*380,vy:-Math.random()*380-120,g:620,r:Math.random()*6,vr:(Math.random()-.5)*12,c:CONF[i%6],s:6+Math.random()*5,life:1.4+Math.random()*.6})}
+function rain(){for(let i=0;i<160;i++)parts.push({x:Math.random()*cw,y:-Math.random()*ch*.6,vx:(Math.random()-.5)*60,vy:80+Math.random()*120,g:60,r:Math.random()*6,vr:(Math.random()-.5)*8,c:CONF[i%6],s:7+Math.random()*6,life:5})}
+let last=0;
+function frame(ts){const dt=Math.min(.05,(ts-last)/1000||0);last=ts;update(dt);render();fxStep(dt);requestAnimationFrame(frame)}
+function resize(){
+ const gm=$('game');cw=gm.clientWidth;ch=gm.clientHeight;dpr=Math.min(2.5,window.devicePixelRatio||1);
+ [cv,fxc].forEach(k=>{k.width=Math.round(cw*dpr);k.height=Math.round(ch*dpr)});
+ scale=Math.max(.68,Math.min(1.35,Math.min(cw/(13*T),ch/(9*T))));
+ const f=Math.min(1.6,Math.max(1,dpr*scale));if(!ground||Math.abs(f-gF)>.15){gF=f;ground=buildGround(f)}
+}
+
+/* ============ INPUT ============ */
+function onTap(e){
+ if(S.phase!=='play'||S.modal)return;unlockAudio();
+ const r=cv.getBoundingClientRect(),wx=camX+(e.clientX-r.left)/scale,wy=camY+(e.clientY-r.top)/scale;
+ const bi=CENTERS.findIndex(b=>wx>=b.x*T-6&&wx<=(b.x+b.w)*T+6&&wy>=(b.y-(b.tower?2.2:1.2))*T&&wy<=(b.y+b.h)*T);
+ if(bi>=0){const b=CENTERS[bi],[tx,ty]=ptile();if(b.triggers.some(([x,y])=>x===tx&&y===ty)){interact(bi);return}const t=nearestTrigger(b);walkToTile(t[0],t[1]);hideHint();return}
+ let tx=Math.floor(wx/T),ty=Math.floor(wy/T);if(tx<0||ty<0||tx>=COLS||ty>=ROWS||!walk[idx(tx,ty)])[tx,ty]=nearestWalk(tx,ty);
+ walkToTile(tx,ty);hideHint();
+}
+const MOVE_KEYS=['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'];
+addEventListener('keydown',e=>{const k=e.key.toLowerCase();
+ if(MOVE_KEYS.includes(k)&&S.phase==='play'&&!S.modal){keys[k]=true;e.preventDefault();unlockAudio()}
+ if((k==='enter'||k===' ')&&S.phase==='play'&&!S.modal&&lastTrig>=0&&!(document.activeElement&&document.activeElement.tagName==='BUTTON')){interact(lastTrig);e.preventDefault()}});
+addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false});
+addEventListener('blur',()=>{for(const k in keys)keys[k]=false});
+
+/* ============ SOUND ============ */
+function unlockAudio(){if(!soundOn||ac)return;try{ac=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}
+function beep(freqs,dur=.09,type='sine',vol=.06){if(!soundOn)return;unlockAudio();if(!ac)return;try{const t0=ac.currentTime;freqs.forEach((fq,i)=>{const o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.value=fq;const t=t0+i*dur;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+dur*1.8);o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+dur*2)})}catch(e){}}
+function toggleSound(){soundOn=!soundOn;$('sndBtn').textContent=soundOn?'🔊':'🔇';if(soundOn)beep([660,880])}
+
+/* ============ BOOT ============ */
+cv=$('world');ctx=cv.getContext('2d');fxc=$('fx');fx=fxc.getContext('2d');
+cv.addEventListener('pointerdown',onTap);
+addEventListener('resize',resize);
+resize();titleScreen();requestAnimationFrame(frame);
+</script>
+</body>
+</html>
